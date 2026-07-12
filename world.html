@@ -146,14 +146,14 @@
 
                 <div class="canvas-container" id="worldCanvasContainer" style="position:relative;">
                     <canvas id="worldCanvas" tabindex="1"></canvas>
-                    <!-- Generation loading overlay -->
-                    <div id="worldLoadingOverlay" style="display:none;position:absolute;inset:0;background:rgba(10,11,14,0.88);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+                    <!-- Generation loading overlay — hidden by default, shown via JS -->
+                    <div id="worldLoadingOverlay" style="display:none;position:absolute;inset:0;background:rgba(10,11,14,0.88);z-index:50;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
                         <div style="width:48px;height:48px;border:4px solid rgba(102,136,170,0.3);border-top-color:#6688aa;border-radius:50%;animation:worldSpin 0.8s linear infinite;"></div>
                         <p style="font-family:'Share',sans-serif;color:#e5e0c3;font-size:15px;">Forging World…</p>
                     </div>
                 </div>
-                <style>@keyframes worldSpin { to { transform: rotate(360deg); } }
-                #worldLoadingOverlay { display: none; }</style>
+                <style>@keyframes worldSpin { to { transform: rotate(360deg); } }</style>
+
                 
                 <div class="viewport-hud">
                     <div class="hud-info">

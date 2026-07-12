@@ -600,22 +600,33 @@ class WorldVisualizer {
         this.inp_seed.value = Math.floor(Math.random() * 999999).toString();
     }
 
+    _showOverlay()  { const o = document.getElementById('worldLoadingOverlay'); if (o) o.style.display = 'flex'; }
+    _hideOverlay()  { const o = document.getElementById('worldLoadingOverlay'); if (o) o.style.display = 'none'; }
+
     _regenerate() {
-        const seed = this.inp_seed.value || String(Math.random());
-        this.world = new WorldEngine(
-            seed,
-            this.sel_size.value,
-            this.sel_core.value,
-            this.sel_tect.value,
-            this.sel_atm.value,
-            this.sel_clim.value,
-        );
-        this._surfaceCache = null;  // invalidate cache
-        this.selectedTile  = this.world.grid[Math.floor(this.world.height / 2)][Math.floor(this.world.width / 2)];
-        this._resetCamera();
-        this._resizeCanvas();
-        this._updateInspector();
-        this._showToast('🌍 World forged — seed: ' + seed);
+        this._showOverlay();
+        // Defer actual work by one frame so the browser can paint the spinner
+        setTimeout(() => {
+            try {
+                const seed = this.inp_seed.value || String(Math.random());
+                this.world = new WorldEngine(
+                    seed,
+                    this.sel_size.value,
+                    this.sel_core.value,
+                    this.sel_tect.value,
+                    this.sel_atm.value,
+                    this.sel_clim.value,
+                );
+                this._surfaceCache = null;
+                this.selectedTile  = this.world.grid[Math.floor(this.world.height / 2)][Math.floor(this.world.width / 2)];
+                this._resetCamera();
+                this._resizeCanvas();
+                this._updateInspector();
+                this._showToast('🌍 World forged — seed: ' + seed);
+            } finally {
+                this._hideOverlay();
+            }
+        }, 30);
     }
 
     _resetCamera() { this.scale = 1; this.panX = 0; this.panY = 0; }
@@ -631,7 +642,7 @@ class WorldVisualizer {
     _setupEvents() {
         window.addEventListener('resize', () => this._resizeCanvas());
         this.btn_rand.addEventListener('click',  () => { this.inp_seed.value = Math.floor(Math.random() * 999999).toString(); });
-        this.btn_forge.addEventListener('click', () => this._regenerate());
+        this.btn_forge.addEventListener('click', () => this._regenerate());  // overlay shown inside _regenerate
         this.chk_pol.addEventListener('change',  () => { this.showPolitical = this.chk_pol.checked; this._surfaceCache = null; this._draw(); });
         this.chk_cit.addEventListener('change',  () => { this.showCities    = this.chk_cit.checked; this._draw(); });
         this.chk_poi.addEventListener('change',  () => { this.showPOIs      = this.chk_poi.checked; this._draw(); });
