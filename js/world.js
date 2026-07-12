@@ -1,1137 +1,1276 @@
-// Seeded Random Number Generator (LCG)
-class SeededRandom {
+// ─────────────────────────────────────────────────────────────────────────────
+// AETHERFORGE WORLDFORGE — world.js
+// Complete procedural planet generator with terrain, hydrology, politics & POIs
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Seeded LCG Random ────────────────────────────────────────────────────────
+class RNG {
     constructor(seed) {
-        this.seed = this.hashString(seed || Math.random().toString());
+        this.seed = this._hash(String(seed || Math.random()));
+        this._orig = this.seed;
     }
-
-    hashString(str) {
-        let hash = 1789;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0;
+    _hash(s) {
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < s.length; i++) {
+            h ^= s.charCodeAt(i);
+            h = Math.imul(h, 16777619) >>> 0;
         }
-        return Math.abs(hash);
+        return h || 1;
     }
-
-    // Returns float between 0 and 1
     next() {
-        const a = 1103515245;
-        const c = 12345;
-        const m = 2147483648;
-        this.seed = (a * this.seed + c) % m;
-        return this.seed / m;
+        // xorshift32
+        let x = this.seed;
+        x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+        this.seed = x >>> 0;
+        return (this.seed >>> 0) / 4294967296;
     }
+    range(lo, hi) { return lo + this.next() * (hi - lo); }
+    int(lo, hi)   { return Math.floor(this.range(lo, hi + 1)); }
+    pick(arr)     { return arr[Math.floor(this.next() * arr.length)]; }
+    shuffle(a)    { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(this.next() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+}
 
-    nextRange(min, max) {
-        return min + this.next() * (max - min);
+// ── Gradient Noise (faster than value noise, smooth results) ─────────────────
+class GradientNoise2D {
+    constructor(rng, tableSize = 512) {
+        this.T = tableSize;
+        this.perm  = new Uint16Array(tableSize * 2);
+        const base = new Uint16Array(tableSize);
+        for (let i = 0; i < tableSize; i++) base[i] = i;
+        // Fisher-Yates
+        for (let i = tableSize - 1; i > 0; i--) {
+            const j = Math.floor(rng.next() * (i + 1));
+            [base[i], base[j]] = [base[j], base[i]];
+        }
+        for (let i = 0; i < tableSize * 2; i++) this.perm[i] = base[i % tableSize];
+
+        this.gx = new Float32Array(tableSize);
+        this.gy = new Float32Array(tableSize);
+        for (let i = 0; i < tableSize; i++) {
+            const a = rng.next() * Math.PI * 2;
+            this.gx[i] = Math.cos(a);
+            this.gy[i] = Math.sin(a);
+        }
     }
-
-    nextChoice(arr) {
-        return arr[Math.floor(this.next() * arr.length)];
+    _fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+    _lerp(a, b, t) { return a + t * (b - a); }
+    _grad(hash, x, y) {
+        const h = hash & (this.T - 1);
+        return this.gx[h] * x + this.gy[h] * y;
+    }
+    noise(x, y) {
+        const xi = Math.floor(x) & (this.T - 1);
+        const yi = Math.floor(y) & (this.T - 1);
+        const xf = x - Math.floor(x);
+        const yf = y - Math.floor(y);
+        const u = this._fade(xf), v = this._fade(yf);
+        const aa = this.perm[this.perm[xi] + yi];
+        const ab = this.perm[this.perm[xi] + yi + 1];
+        const ba = this.perm[this.perm[xi + 1] + yi];
+        const bb = this.perm[this.perm[xi + 1] + yi + 1];
+        return this._lerp(
+            this._lerp(this._grad(aa, xf, yf),     this._grad(ba, xf - 1, yf),     u),
+            this._lerp(this._grad(ab, xf, yf - 1), this._grad(bb, xf - 1, yf - 1), u),
+            v
+        );
+    }
+    fbm(x, y, oct = 6, lac = 2.0, gain = 0.5) {
+        let v = 0, amp = 0.5, freq = 1, maxV = 0;
+        for (let i = 0; i < oct; i++) {
+            v    += this.noise(x * freq, y * freq) * amp;
+            maxV += amp;
+            amp  *= gain;
+            freq *= lac;
+        }
+        return v / maxV; // -1..1
+    }
+    // Domain-warped fbm — gives very organic continent shapes
+    warpedFbm(x, y, oct = 5) {
+        const qx = this.fbm(x, y, oct);
+        const qy = this.fbm(x + 5.2, y + 1.3, oct);
+        return this.fbm(x + 4.0 * qx, y + 4.0 * qy, oct);
     }
 }
 
-// 2D Noise Generator (Fractional Brownian Motion approximation via Hash functions)
-class ValueNoise2D {
+// ── Procedural Name Generator ─────────────────────────────────────────────────
+class NameGen {
     constructor(rng) {
         this.rng = rng;
-        this.grid = {};
+        this.vowels = ['a','e','i','o','u','ae','ai','au','ei','ou','ia','io'];
+        this.cons1  = ['Br','Cr','Dr','Fr','Gr','Pr','Str','Thr','Vr','Wh','Bl','Fl','Sl','Sp','St',
+                       'Al','El','Er','Ul','Ar','Or','Ir','An','En','Un','Val','Mor','Eld','Aer','Ith'];
+        this.cons2  = ['nt','nd','th','sh','ch','gh','rk','rm','rd','nk','ld','lt','nn','ss','ng',
+                       'dar','hold','mere','ford','wick','ton','holm','fell','mire','wyn','dor','ath'];
+        this.suffN  = ['ia','is','ar','or','im','el','or','in','an','on','yl','um','us'];
+        this.suffC  = ['land','heim','vale','keep','feld','reach','march','watch','stone','hold','gate','spire'];
     }
-
-    getHash(x, y) {
-        const key = `${x},${y}`;
-        if (this.grid[key] === undefined) {
-            this.grid[key] = this.rng.next();
-        }
-        return this.grid[key];
+    city() {
+        const r = this.rng;
+        const pre = r.pick([...this.cons1]);
+        const mid = r.pick([...this.vowels]);
+        const suf = r.pick([...this.cons2]);
+        return pre + mid + suf;
     }
-
-    // Bilinear interpolation
-    lerp(a, b, t) {
-        return a + (b - a) * (3 * t * t - 2 * t * t * t);
+    nation() {
+        const r = this.rng;
+        const adj = r.pick(['Eldorian','Valenian','Ashen','Sylvan','Frostbound','Iron','Golden','Silver',
+                             'Crimson','Azure','Verdant','Shadow','Storm','Ember','Voidborn','Arcane',
+                             'Sunlit','Moonforged','Tidewrought','Stonebound']);
+        const noun = r.pick(['Realm','Empire','Domain','Alliance','League','Confederacy','Union',
+                              'Dominion','Sovereignty','Compact','Covenant','Hold','Territories','Expanse']);
+        return `The ${adj} ${noun}`;
     }
-
-    noise(x, y) {
-        const xf = Math.floor(x);
-        const yf = Math.floor(y);
-        const xt = x - xf;
-        const yt = y - yf;
-
-        const n00 = this.getHash(xf, yf);
-        const n10 = this.getHash(xf + 1, yf);
-        const n01 = this.getHash(xf, yf + 1);
-        const n11 = this.getHash(xf + 1, yf + 1);
-
-        const x1 = this.lerp(n00, n10, xt);
-        const x2 = this.lerp(n01, n11, xt);
-
-        return this.lerp(x1, x2, yt);
-    }
-
-    fbm(x, y, octaves = 4) {
-        let value = 0;
-        let amplitude = 1.0;
-        let frequency = 1.0;
-        let maxValue = 0;
-
-        for (let i = 0; i < octaves; i++) {
-            value += this.noise(x * frequency, y * frequency) * amplitude;
-            maxValue += amplitude;
-            amplitude *= 0.5;
-            frequency *= 2.0;
-        }
-
-        return value / maxValue;
+    capital() {
+        const r = this.rng;
+        const syl = r.pick(this.cons1) + r.pick(this.vowels);
+        const suf = r.pick(this.suffC);
+        return syl + suf;
     }
 }
 
-// World Engine Class
+// ── Biome Table ───────────────────────────────────────────────────────────────
+const BIOMES = {
+    // Key: { label, col, soilHint, bedrockHint }
+    'Deep Ocean':     { col: [12, 24, 58],   soil: 'Abyssal Clay',        bedrock: 'Basalt' },
+    'Ocean':          { col: [22, 54, 105],  soil: 'Marine Silicate Mud', bedrock: 'Basalt' },
+    'Shallow Sea':    { col: [38, 92, 155],  soil: 'Fine Carbonate Sand',  bedrock: 'Limestone' },
+    'Ice Cap':        { col: [230, 240, 255],soil: 'Frozen Regolith',     bedrock: 'Glacial Till' },
+    'Tundra':         { col: [168, 196, 180],soil: 'Permafrost Peat',     bedrock: 'Granite' },
+    'Glacier':        { col: [190, 220, 245],soil: 'Compacted Ice',       bedrock: 'Glacial Till' },
+    'Desert':         { col: [210, 170, 80], soil: 'Aeolian Sand',        bedrock: 'Sandstone' },
+    'Dune Sea':       { col: [230, 188, 70], soil: 'Shifting Dune Crest', bedrock: 'Sandstone' },
+    'Savanna':        { col: [182, 196, 90], soil: 'Laterite Loam',       bedrock: 'Schist' },
+    'Grassland':      { col: [86, 148, 52],  soil: 'Humus-Rich Loam',     bedrock: 'Limestone' },
+    'Shrubland':      { col: [140, 168, 82], soil: 'Sandy Loam',          bedrock: 'Sandstone' },
+    'Forest':         { col: [52, 112, 48],  soil: 'Podsol Loam',         bedrock: 'Granite' },
+    'Rainforest':     { col: [24, 90, 40],   soil: 'Laterite Clay',       bedrock: 'Basalt' },
+    'Swamp':          { col: [48, 88, 58],   soil: 'Peat Bog Mire',       bedrock: 'Shale' },
+    'Taiga':          { col: [60, 104, 88],  soil: 'Podzol Soil',         bedrock: 'Granite' },
+    'Valley':         { col: [68, 128, 60],  soil: 'Alluvial Clay',       bedrock: 'Limestone' },
+    'Plateau':        { col: [134, 148, 102],soil: 'Laterite Crust',      bedrock: 'Shale' },
+    'Canyon':         { col: [160, 110, 52], soil: 'Scree Sediment',      bedrock: 'Sandstone' },
+    'Ridge':          { col: [118, 118, 138],soil: 'Rocky Regolith',      bedrock: 'Quartzite' },
+    'Highland':       { col: [122, 128, 112],soil: 'Coarse Soil',         bedrock: 'Schist' },
+    'Mountain':       { col: [88, 88, 112],  soil: 'Alpine Scree',        bedrock: 'Granite' },
+    'Snowcap':        { col: [215, 222, 234],soil: 'Glacial Moraine',     bedrock: 'Granite' },
+    'Volcano':        { col: [96, 28, 18],   soil: 'Volcanic Ash',        bedrock: 'Obsidian' },
+    'Lava Field':     { col: [200, 50, 10],  soil: 'Fresh Lava Crust',    bedrock: 'Obsidian' },
+    'Trench':         { col: [6, 12, 30],    soil: 'Hadal Ooze',          bedrock: 'Peridotite' },
+    'River':          { col: [58, 148, 180], soil: 'Riparian Silt',       bedrock: 'Limestone' },
+    'Lake':           { col: [60, 120, 170], soil: 'Lacustrine Clay',     bedrock: 'Limestone' },
+    'Crater Lake':    { col: [40, 100, 148], soil: 'Hydrothermal Crust',  bedrock: 'Obsidian' },
+};
+
+// ── POI Types ─────────────────────────────────────────────────────────────────
+const POI_TYPES = [
+    { id:'crypt',   icon:'⚰️', name:'Ancient Tomb',         desc:'Sealed burial halls radiating necrotic energy. Undead guardians prowl forgotten corridors.',                       theme:'crypt',   biomes:['Highland','Mountain','Plateau','Canyon'] },
+    { id:'keep',    icon:'🏰', name:'Ruined Fortress',       desc:'Crumbling battlements of a long-fallen dynasty. Mercenaries and warlords now contest its walls.',               theme:'stone',   biomes:['Highland','Ridge','Mountain','Plateau'] },
+    { id:'cave',    icon:'🌋', name:'Sulfur Caverns',        desc:'Geothermal steam vents laced with crystallized sulfur. Fire drakes nest in the deepest chambers.',              theme:'cavern',  biomes:['Volcano','Lava Field','Canyon','Desert'] },
+    { id:'temple',  icon:'🏛️', name:'Sunken Temple',         desc:'Silt-smothered sanctuaries built for ancient gods. Strange glyphs pulse in the brackish water.',              theme:'temple',  biomes:['Swamp','Rainforest','Valley','River'] },
+    { id:'mine',    icon:'⛏️', name:'Abandoned Mine',        desc:'A collapsed shaft network. Rich ore veins draw desperate delvers into unstable tunnels.',                      theme:'stone',   biomes:['Mountain','Ridge','Highland','Plateau'] },
+    { id:'tower',   icon:'🗼', name:'Arcane Spire',          desc:'A toppled wizard\'s tower. Its topmost chamber hums with unstable magical resonance.',                         theme:'arcane',  biomes:['Grassland','Forest','Plateau','Savanna'] },
+    { id:'ruins',   icon:'🏚️', name:'Lost Settlement',       desc:'Overgrown village ruins. The last inhabitants vanished overnight, leaving meals still on tables.',              theme:'crypt',   biomes:['Forest','Grassland','Rainforest','Swamp'] },
+    { id:'shrine',  icon:'⛩️', name:'Elemental Shrine',      desc:'An ancient elemental node. Unpredictable magical surges reshape the environment around it.',                   theme:'arcane',  biomes:['Tundra','Mountain','Glacier','Snowcap'] },
+    { id:'barrow',  icon:'🪨', name:'Ancient Barrow Mound',  desc:'A mass burial site for fallen warriors. Restless spirits demand tribute before permitting passage.',            theme:'crypt',   biomes:['Tundra','Grassland','Savanna','Highland'] },
+    { id:'shipwreck',icon:'⚓', name:'Sunken Wreck',         desc:'A fleet-killer reef that claimed countless ships. Waterlogged holds conceal treasure and drowned crew.',       theme:'temple',  biomes:['Shallow Sea','River','Lake','Crater Lake'] },
+    { id:'labyrinth',icon:'🌀', name:'Stone Labyrinth',      desc:'An impossible geometric maze carved into bedrock. Its architect has been dead for three thousand years.',       theme:'stone',   biomes:['Desert','Dune Sea','Canyon','Plateau'] },
+    { id:'outpost', icon:'🏕️', name:'Forgotten Outpost',     desc:'Military watchpost long since abandoned. Supply caches and old orders are still inside.',                      theme:'stone',   biomes:['Savanna','Shrubland','Taiga','Tundra'] },
+];
+
+// ── World Engine ─────────────────────────────────────────────────────────────
 class WorldEngine {
     constructor(seed, sizeMode, coreType, tectonics, atmosphere, climate) {
-        this.rng = new SeededRandom(seed);
-        this.sizeMode = sizeMode;
-        this.coreType = coreType;
-        this.tectonics = tectonics;
+        this.seed       = seed;
+        this.rng        = new RNG(seed);
+        this.sizeMode   = sizeMode;
+        this.coreType   = coreType;
+        this.tectonics  = tectonics;
         this.atmosphere = atmosphere;
-        this.climate = climate;
+        this.climate    = climate;
 
-        this.width = sizeMode === 'small' ? 32 : (sizeMode === 'large' ? 64 : 48);
-        this.height = this.width;
+        const W = sizeMode === 'small' ? 96 : sizeMode === 'large' ? 192 : 128;
+        this.width  = W;
+        this.height = Math.floor(W * 0.5);  // 2:1 equirectangular ratio
 
-        this.grid = [];
+        this.nameGen = new NameGen(new RNG(seed + '_names'));
+        this.grid    = [];
         this.nations = [];
-        this.cities = [];
-        this.pois = [];
+        this.cities  = [];
+        this.pois    = [];
 
         this.atmosphereLayers = [
-            { name: "Troposphere", alt: "0-12 km", desc: "Weather layer. 75% of atmosphere mass.", temp: "15°C to -50°C", pressure: "1.0 to 0.2 atm" },
-            { name: "Stratosphere", alt: "12-50 km", desc: "Dry layer. Contains protective Ozone layer.", temp: "-50°C to -3°C", pressure: "0.2 to 0.001 atm" },
-            { name: "Mesosphere", alt: "50-85 km", desc: "Coldest layer. Meteors burn up here.", temp: "-3°C to -90°C", pressure: "0.001 to 0.00001 atm" },
-            { name: "Thermosphere", alt: "85-600 km", desc: "Contains Ionosphere. Auroras generate here.", temp: "-90°C to 1500°C", pressure: "Trace" },
-            { name: "Exosphere", alt: "600-10,000 km", desc: "Sparsely populated upper limit blending into space.", temp: "1500°C (molecular)", pressure: "Vacuum" },
-            { name: "Magnetosphere", alt: "10,000-60,000 km", desc: "Magnetic force field deflecting stellar winds.", temp: "Stellar temp", pressure: "Vacuum" }
+            { name:'Troposphere',   alt:'0–12 km',        desc:'The weather layer. Contains 75% of atmospheric mass. All weather phenomena occur here.',             temp:'+15°C to −57°C',  pressure:'1.0–0.1 atm' },
+            { name:'Stratosphere',  alt:'12–50 km',       desc:'Dry and stable. The ozone layer shields the surface from ultraviolet radiation.',                   temp:'−57°C to −3°C',   pressure:'0.1–0.001 atm' },
+            { name:'Mesosphere',    alt:'50–85 km',       desc:'The coldest atmospheric layer. Incoming meteors incandesce and burn up here.',                      temp:'−3°C to −90°C',   pressure:'0.001–0.00001 atm' },
+            { name:'Thermosphere',  alt:'85–600 km',      desc:'Ionosphere sub-layer. Solar radiation excites gas particles, creating polar auroras.',              temp:'−90°C to +2500°C',pressure:'Trace' },
+            { name:'Exosphere',     alt:'600–10,000 km',  desc:'The outermost atmospheric boundary. Gas molecules escape into interplanetary space here.',          temp:'2500°C (molecular)',pressure:'Near-vacuum' },
+            { name:'Magnetosphere', alt:'10,000–60,000 km',desc:'Magnetic field generated by the planetary core. Deflects solar wind and cosmic radiation.',       temp:'Stellar ambient', pressure:'Vacuum' },
         ];
 
         this.coreLayers = [
-            { name: "Crust", thickness: "5-70 km", composition: "Silicate Rocks (Basalt & Granite)", state: "Solid", temp: "Surface to 900°C" },
-            { name: "Lithosphere", thickness: "80-150 km", composition: "Brittle crust & upper mantle", state: "Rigid Solid", temp: "900°C to 1200°C" },
-            { name: "Asthenosphere", thickness: "180-250 km", composition: "Highly viscous ductile silicate rock", state: "Semi-fluid / Plastic", temp: "1200°C to 1400°C" },
-            { name: "Mantle", thickness: "2,890 km", composition: "Magnesium-Iron Silicates (Peridotite)", state: "Viscous Solid / Convecting", temp: "1400°C to 3700°C" },
-            { name: "Core", thickness: "3,480 km radius", composition: this.getCoreCompositionName(), state: "Metallic Liquid & Crystalline Solid Core", temp: "3700°C to 6000°C" }
+            { name:'Crust',          thickness:'5–70 km',        composition:'Silicate rocks (Basalt, Granite, Andesite)',                      state:'Solid',                    temp:'Surface to 900°C' },
+            { name:'Lithosphere',    thickness:'80–150 km',      composition:'Brittle crust and rigid upper mantle fused together',              state:'Rigid Solid',              temp:'900–1,200°C' },
+            { name:'Asthenosphere',  thickness:'180–250 km',     composition:'Partially molten ductile silicate rock enabling plate motion',     state:'Plastic / Semi-fluid',     temp:'1,200–1,400°C' },
+            { name:'Mantle',         thickness:'2,890 km',       composition:'Magnesium-iron silicates (Peridotite, Pyroxenite)',                state:'Viscous Solid / Convecting',temp:'1,400–3,700°C' },
+            { name:'Outer Core',     thickness:'2,200 km',       composition:this._coreCompositionName() + ' (liquid)',                          state:'Molten Liquid (Dynamo)',   temp:'3,700–5,000°C' },
+            { name:'Inner Core',     thickness:'1,280 km radius',composition:this._coreCompositionName() + ' (crystalline)',                     state:'Crystalline Solid',        temp:'5,000–6,000°C' },
         ];
 
         this.generate();
     }
 
-    getCoreCompositionName() {
-        if (this.coreType === 'iron-nickel') return "Iron-Nickel Alloy";
-        if (this.coreType === 'silicate') return "Silicate Rock & Oxide Compounds";
-        if (this.coreType === 'gold-molten') return "Molten Heavy Metals (Gold, Platinum, Uranium)";
-        return "Volatile Crystalline Core (Energy Matrix)";
+    _coreCompositionName() {
+        const m = { 'iron-nickel':'Iron-Nickel Alloy', 'silicate':'Silicate Oxide Matrix',
+                    'gold-molten':'Molten Heavy Metals (Au, Pt, U)', 'crystal':'Volatile Energy Crystal' };
+        return m[this.coreType] || 'Iron-Nickel Alloy';
     }
 
+    // ── Main Generation Pipeline ─────────────────────────────────────────────
     generate() {
-        const noiseGen = new ValueNoise2D(this.rng);
+        const noiseA = new GradientNoise2D(new RNG(this.seed + '_A'));
+        const noiseB = new GradientNoise2D(new RNG(this.seed + '_B'));
+        const noiseM = new GradientNoise2D(new RNG(this.seed + '_M'));
+        const noiseT = new GradientNoise2D(new RNG(this.seed + '_T'));
+
+        const W = this.width, H = this.height;
+
+        // ── 1. Heightmap with domain-warped FBM ────────────────────────────
+        const rawH = new Float32Array(W * H);
+        let hMin = Infinity, hMax = -Infinity;
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                const nx = x / W * 3;
+                const ny = y / H * 1.5;
+                let h = noiseA.warpedFbm(nx, ny, 6);
+                // Push towards poles for icecap bias
+                const latFrac = Math.abs((y / H) - 0.5) * 2;  // 0 at equator, 1 at pole
+                h -= latFrac * latFrac * 0.25;
+                rawH[y * W + x] = h;
+                if (h < hMin) hMin = h;
+                if (h > hMax) hMax = h;
+            }
+        }
+        // Normalize to 0..1
+        const hRange = hMax - hMin;
+        const heightMap = new Float32Array(W * H);
+        for (let i = 0; i < W * H; i++) heightMap[i] = (rawH[i] - hMin) / hRange;
+
+        // Tectonic enhancement
+        if (this.tectonics === 'active') {
+            for (let i = 0; i < W * H; i++) {
+                const h = heightMap[i];
+                // Sharpen midpoints — creates steeper mountains and deeper trenches
+                if (h > 0.55) heightMap[i] = Math.min(1, 0.55 + (h - 0.55) * 1.8);
+                if (h < 0.4)  heightMap[i] = Math.max(0, 0.4 - (0.4 - h) * 1.6);
+            }
+        }
+
+        // ── 2. Climate Maps ───────────────────────────────────────────────
+        const climateOffset = { balanced: 0, frozen: -12, desolate: 8, volcanic: 18 };
+        const moistureScale = { balanced: 1, frozen: 0.55, desolate: 0.35, volcanic: 0.7 };
+        const dT = climateOffset[this.climate] || 0;
+        const dM = moistureScale[this.climate] || 1;
+
+        // ── 3. Build Grid Cells ────────────────────────────────────────────
         this.grid = [];
-
-        // 1. Generate geographical maps
-        for (let y = 0; y < this.height; y++) {
+        for (let y = 0; y < H; y++) {
             const row = [];
-            for (let x = 0; x < this.width; x++) {
-                // Coordinate normalized latitude (-90 to 90) and longitude (-180 to 180)
-                const lat = (0.5 - y / this.height) * 180;
-                const lon = (x / this.width - 0.5) * 360;
+            for (let x = 0; x < W; x++) {
+                const h = heightMap[y * W + x];
+                const latDeg = ((H / 2 - y) / (H / 2)) * 90;   // +90 N → -90 S
+                const lonDeg = ((x / W) - 0.5) * 360;
 
-                // Base height noise
-                let h = noiseGen.fbm(x * 0.08, y * 0.08, 4);
+                const latAbs = Math.abs(latDeg);
 
-                // Modify heights based on plate tectonics selection
-                if (this.tectonics === 'active') {
-                    // Create more dramatic mountains/ridges/trenches
-                    if (h > 0.6) h = 0.6 + (h - 0.6) * 1.5;
-                    if (h < 0.4) h = 0.4 - (0.4 - h) * 1.4;
-                } else {
-                    // Flatten height range
-                    h = 0.35 + (h - 0.35) * 0.7;
-                }
+                // Temperature: equator warm, poles cold, altitude cools
+                const altCool  = h > 0.5 ? (h - 0.5) * 55 : 0;
+                const baseTemp = 30 - latAbs * 0.72 + dT - altCool;
 
-                // Climate modifier adjustments for temperature
-                // Polar cold caps top/bottom
-                let baseTemp = 28 - Math.abs(lat) * 0.7; // equator is hot, poles are cold
-                if (this.climate === 'frozen') baseTemp -= 15;
-                if (this.climate === 'volcanic') baseTemp += 20;
-                if (this.climate === 'desolate') baseTemp += 10;
+                // Moisture from noise, modified by climate
+                const rawMoist = (noiseM.fbm(x / W * 5, y / H * 5, 4) + 1) / 2;
+                // Hadley cells: wet at equator and ~60°, dry at ~30° (trade wind deserts)
+                const hadley   = Math.sin((latAbs / 90) * Math.PI * 3) * 0.15;
+                let moisture   = Math.max(0, Math.min(1, rawMoist + hadley)) * dM;
 
-                // Height cooling
-                const temp = baseTemp - (h > 0.5 ? (h - 0.5) * 45 : 0);
+                // Wind shadow: high terrain blocks moisture
+                if (h > 0.65) moisture *= 0.6;
 
-                // Moisture
-                let moisture = noiseGen.fbm(x * 0.12 + 10, y * 0.12 + 10, 3);
-                if (this.climate === 'desolate') moisture *= 0.4;
-                if (this.climate === 'frozen') moisture *= 0.6; // dry ice regions
-
-                // Hydrology: aquifer level is base moisture * depth
-                const aquifer = Math.max(5, Math.floor(moisture * 150 - (h > 0.65 ? 40 : 0)));
+                const aquifer = Math.max(5, Math.floor(moisture * 180 - (h > 0.65 ? 50 : 0)));
 
                 row.push({
                     x, y,
-                    lat: lat.toFixed(1),
-                    lon: lon.toFixed(1),
+                    lat: latDeg.toFixed(1),
+                    lon: lonDeg.toFixed(1),
                     height: h,
-                    temperature: Math.round(temp),
+                    temp: Math.round(baseTemp),
                     moisture: Math.round(moisture * 100),
                     aquifer,
-                    landform: 'Plain',
+                    biome: 'Ocean',
                     liquid: 'None',
-                    soil: 'Sandy Regolith',
-                    bedrock: 'Granite',
-                    magmaPct: Math.min(100, Math.max(5, Math.round((h * 70) + (this.climate === 'volcanic' ? 40 : 0)))),
+                    soil: 'Silicate Mud',
+                    bedrock: 'Basalt',
+                    magmaPct: Math.round(h * 60 + (this.climate === 'volcanic' ? 35 : 0)),
                     nationId: -1,
                     city: null,
-                    poi: null
+                    poi: null,
+                    isRiver: false,
+                    isLake: false,
                 });
             }
             this.grid.push(row);
         }
 
-        // 2. Classify Landforms and Liquids
-        for (let y = 0; y < this.height; y++) {
-            for (let x = 0; x < this.width; x++) {
+        // ── 4. Biome Classification ──────────────────────────────────────
+        this._classifyBiomes();
+
+        // ── 5. Hydrology (Rivers & Lakes) ────────────────────────────────
+        this._runHydrology();
+
+        // ── 6. Nations & Cities ───────────────────────────────────────────
+        this._buildPolitics();
+
+        // ── 7. Points of Interest ─────────────────────────────────────────
+        this._scatterPOIs();
+    }
+
+    _classifyBiomes() {
+        const W = this.width, H = this.height;
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
                 const s = this.grid[y][x];
+                const { height: h, temp, moisture: m } = s;
+                let biome;
 
-                // Heights classifications
-                if (s.height < 0.28) {
-                    s.landform = 'Trench';
-                    s.liquid = 'Ocean';
-                    s.bedrock = 'Basalt';
-                    s.soil = 'Silty Mud';
-                } else if (s.height < 0.44) {
-                    s.landform = 'Plain';
-                    s.liquid = 'Ocean';
-                    s.bedrock = 'Basalt';
-                    s.soil = 'Silty Mud';
-                } else if (s.height < 0.48) {
-                    s.landform = 'Plain';
-                    s.liquid = 'Sea';
-                    s.bedrock = 'Basalt';
-                    s.soil = 'Fine Sand';
-                } else if (s.height < 0.54) {
-                    // Check local dryness
-                    if (s.moisture < 20) {
-                        s.landform = 'Desert';
-                        s.soil = 'Regolith Dust';
-                        if (this.rng.next() > 0.5) s.landform = 'Dune';
+                // ── Ocean / Sea ──
+                if (h < 0.36) { biome = 'Deep Ocean'; }
+                else if (h < 0.45) { biome = 'Ocean'; }
+                else if (h < 0.49) { biome = 'Shallow Sea'; }
+                else {
+                    // ── Land ──
+                    if (temp < -20) {
+                        biome = (h > 0.7) ? 'Glacier' : 'Ice Cap';
+                    } else if (temp < -5) {
+                        biome = (m > 45) ? 'Tundra' : 'Glacier';
+                    } else if (h > 0.88) {
+                        biome = (this.climate === 'volcanic' || temp > 15) ? 'Lava Field' : 'Snowcap';
+                    } else if (h > 0.80) {
+                        biome = (temp < 2) ? 'Snowcap' : 'Volcano';
+                    } else if (h > 0.72) {
+                        biome = (temp < 4) ? 'Snowcap' : 'Mountain';
+                    } else if (h > 0.63) {
+                        biome = 'Highland';
+                    } else if (h > 0.58) {
+                        if (m < 18) biome = 'Canyon';
+                        else biome = 'Plateau';
+                    } else if (h > 0.52) {
+                        if (m < 15) biome = (this.rng.next() > 0.4) ? 'Dune Sea' : 'Desert';
+                        else if (m < 30) biome = 'Shrubland';
+                        else if (temp < 2) biome = 'Taiga';
+                        else if (temp < 10) biome = 'Highland';
+                        else biome = 'Valley';
                     } else {
-                        s.landform = 'Plain';
-                        s.soil = 'Loam Soil';
+                        // Low-lying land 0.49..0.52
+                        if (m < 12) biome = 'Desert';
+                        else if (m < 20) biome = (temp > 24) ? 'Savanna' : 'Shrubland';
+                        else if (m < 35) biome = (temp > 22) ? 'Savanna' : 'Grassland';
+                        else if (temp > 24 && m > 70) biome = 'Rainforest';
+                        else if (temp > 18 && m > 55) biome = (this.rng.next() > 0.6) ? 'Swamp' : 'Rainforest';
+                        else if (temp < 4 && m > 50) biome = 'Taiga';
+                        else if (m > 50) biome = 'Forest';
+                        else biome = 'Grassland';
                     }
-                    s.bedrock = 'Sandstone';
-                } else if (s.height < 0.62) {
-                    s.landform = 'Valley';
-                    s.soil = 'Clay Soil';
-                    s.bedrock = 'Limestone';
-                } else if (s.height < 0.70) {
-                    s.landform = 'Plateau';
-                    s.soil = 'Coarse Soil';
-                    s.bedrock = 'Shale';
-                } else if (s.height < 0.82) {
-                    s.landform = 'Mountain';
-                    s.soil = 'Rocky Regolith';
-                    s.bedrock = 'Granite';
-                } else {
-                    s.landform = 'Volcano';
-                    s.soil = 'Volcanic Ash';
-                    s.bedrock = 'Obsidian';
-                    s.liquid = this.climate === 'volcanic' || this.rng.next() > 0.5 ? 'Lava' : 'None';
                 }
 
-                // Ice adjustments based on temperature
-                if (s.temperature < -5) {
-                    s.liquid = 'Glacier';
-                    if (s.temperature < -15) {
-                        s.landform = 'Ice cap';
-                        s.liquid = 'None';
-                    }
-                    s.soil = 'Frozen Regolith (Permafrost)';
-                    s.bedrock = 'Glacial Till';
-                }
-
-                // Natural canyon formations based on sharp height slope
-                if (s.landform === 'Valley' && this.rng.next() > 0.8) {
-                    s.landform = 'Canyon';
-                    s.soil = 'Scree Sediment';
-                }
-                
-                // Cliff formation
-                if (s.landform === 'Mountain' && this.rng.next() > 0.85) {
-                    s.landform = 'Cliff';
-                    s.soil = 'Exposed Bedrock';
-                }
+                s.biome = biome;
+                const info = BIOMES[biome] || BIOMES['Ocean'];
+                s.soil    = info.soil;
+                s.bedrock = info.bedrock;
+                s.liquid  = biome.includes('Ocean') || biome.includes('Sea') ? biome : 'None';
             }
         }
+    }
 
-        // 3. Hydrology Simulation (Rivers & Lakes)
-        const riverOrigins = Math.floor(this.width * 0.15);
-        for (let i = 0; i < riverOrigins; i++) {
-            // Find a high elevation point (mountain/ridge)
-            let rx = Math.floor(this.rng.next() * this.width);
-            let ry = Math.floor(this.rng.next() * this.height);
-            let steps = 0;
+    _isLand(s) {
+        return s.height >= 0.49 && !['Deep Ocean','Ocean','Shallow Sea'].includes(s.biome);
+    }
 
-            while (steps < 40) {
+    _runHydrology() {
+        const W = this.width, H = this.height;
+        const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+
+        // Rivers originate from mountains/highlands and flow to sea
+        const numRivers = Math.floor(W * 0.08);
+        for (let i = 0; i < numRivers; i++) {
+            let rx = this.rng.int(0, W - 1);
+            let ry = this.rng.int(0, H - 1);
+            // Try to start from higher elevation
+            for (let t = 0; t < 10; t++) {
+                const tx = this.rng.int(0, W - 1), ty = this.rng.int(0, H - 1);
+                if (this.grid[ty][tx].height > this.grid[ry][rx].height) { rx = tx; ry = ty; }
+            }
+            let steps = 0, stagnant = 0;
+            while (steps < 120 && stagnant < 4) {
                 const s = this.grid[ry][rx];
-                if (s.height < 0.48) {
-                    break; // reached sea
-                }
-                
-                s.liquid = 'River';
-                
-                // Find lowest neighbor
-                let lowestNeighbor = null;
-                let minHeight = s.height;
-                const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
-                
+                if (!this._isLand(s)) break;
+                s.isRiver = true;
+                s.liquid  = 'River';
+
+                let best = null, bestH = s.height;
                 for (const [dx, dy] of dirs) {
-                    const nx = (rx + dx + this.width) % this.width;
-                    const ny = Math.max(0, Math.min(this.height - 1, ry + dy));
-                    const neighbor = this.grid[ny][nx];
-                    if (neighbor.height < minHeight) {
-                        minHeight = neighbor.height;
-                        lowestNeighbor = { x: nx, y: ny };
+                    const nx = (rx + dx + W) % W;
+                    const ny = Math.max(0, Math.min(H - 1, ry + dy));
+                    if (this.grid[ny][nx].height < bestH) {
+                        bestH = this.grid[ny][nx].height;
+                        best  = [nx, ny];
                     }
                 }
-                
-                if (lowestNeighbor) {
-                    rx = lowestNeighbor.x;
-                    ry = lowestNeighbor.y;
-                } else {
-                    // Stagnant, form a lake!
-                    s.liquid = 'Lake';
-                    break;
-                }
+                if (best) { [rx, ry] = best; stagnant = 0; }
+                else { s.isLake = true; s.liquid = 'Lake'; s.biome = (s.biome === 'Crater Lake') ? 'Crater Lake' : 'Lake'; stagnant++; }
                 steps++;
             }
         }
+    }
 
-        // 4. Generate Political Capitals and Borders
-        const numNations = 5;
-        this.nations = [
-            { name: "The Eldorian Realm", color: "#66bb66", capital: "Eldoria" },
-            { name: "Empire of Valenhold", color: "#66aacc", capital: "Valenhold" },
-            { name: "The Ashen Domain", color: "#e07a5f", capital: "Ashenspire" },
-            { name: "Sylvan Alliance", color: "#f2cc8f", capital: "Sylvan Grove" },
-            { name: "Frostbound League", color: "#95d5b2", capital: "Frostkeep" }
+    _buildPolitics() {
+        const W = this.width, H = this.height;
+        const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+        const numNations = this.rng.int(5, 9);
+        const palettes = [
+            '#66bb66','#6699cc','#e07a5f','#f2cc8f','#95d5b2',
+            '#c77dff','#f4a261','#48cae4','#e63946','#2dc653',
         ];
+        this.rng.shuffle(palettes);
 
-        this.cities = [];
-        const openQueue = [];
-
-        // Plant nation capitals on plains/valleys near water
+        // Generate nations
         for (let i = 0; i < numNations; i++) {
-            let cx = 0;
-            let cy = 0;
-            let found = false;
+            const capName = this.nameGen.capital();
+            this.nations.push({
+                name: this.nameGen.nation(),
+                color: palettes[i % palettes.length],
+                capital: capName,
+                id: i,
+            });
+        }
 
-            for (let attempts = 0; attempts < 300; attempts++) {
-                cx = Math.floor(this.rng.next() * this.width);
-                cy = Math.floor(this.rng.next() * this.height);
+        // Plant capitals
+        const queue = [];
+        for (let i = 0; i < numNations; i++) {
+            let cx = 0, cy = 0, found = false;
+            for (let att = 0; att < 500; att++) {
+                cx = this.rng.int(0, W - 1);
+                cy = this.rng.int(0, H - 1);
                 const s = this.grid[cy][cx];
-
-                // Capitals grow on flat fertile land near water
-                if (s.height >= 0.48 && s.height < 0.58 && s.liquid === 'None' && s.landform !== 'Desert') {
-                    // Check if close to water
-                    let nearWater = false;
-                    const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
-                    for (const [dx, dy] of dirs) {
-                        const nx = (cx + dx + this.width) % this.width;
-                        const ny = Math.max(0, Math.min(this.height - 1, cy + dy));
-                        if (this.grid[ny][nx].height < 0.48 || this.grid[ny][nx].liquid === 'River') {
-                            nearWater = true;
-                        }
-                    }
-
-                    if (nearWater) {
-                        found = true;
-                        break;
-                    }
+                if (!this._isLand(s)) continue;
+                if (['Mountain','Snowcap','Ice Cap','Glacier','Volcano','Lava Field','Deep Ocean','Ocean','Shallow Sea'].includes(s.biome)) continue;
+                // Not already claimed
+                if (s.nationId !== -1) continue;
+                // Prefer near water
+                let nearWater = false;
+                for (const [dx, dy] of dirs) {
+                    const nx = (cx + dx + W) % W;
+                    const ny = Math.max(0, Math.min(H - 1, cy + dy));
+                    const nb = this.grid[ny][nx];
+                    if (!this._isLand(nb) || nb.isRiver) nearWater = true;
                 }
+                if (nearWater || att > 300) { found = true; break; }
             }
-
-            if (!found) {
-                // Fallback
-                cx = Math.floor(this.rng.next() * this.width);
-                cy = Math.floor(this.rng.next() * this.height);
-            }
-
-            const nation = this.nations[i];
             const s = this.grid[cy][cx];
             s.nationId = i;
-            s.city = { name: nation.capital, isCapital: true, nationId: i };
-            this.cities.push({ name: nation.capital, x: cx, y: cy, nationId: i, isCapital: true });
-
-            openQueue.push({ x: cx, y: cy, nationId: i });
+            s.city = { name: this.nations[i].capital, isCapital: true, nationId: i, pop: this.rng.int(30000, 500000) };
+            this.cities.push({ name: this.nations[i].capital, x: cx, y: cy, nationId: i, isCapital: true, pop: s.city.pop });
+            queue.push({ x: cx, y: cy, nationId: i, cost: 0 });
         }
 
-        // BFS flood-fill to claim land territories
-        while (openQueue.length > 0) {
-            const curr = openQueue.shift();
-            const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
-
+        // Priority-queue BFS (Voronoi-like with terrain cost)
+        queue.sort((a, b) => a.cost - b.cost);
+        while (queue.length > 0) {
+            const curr = queue.shift();
             for (const [dx, dy] of dirs) {
-                const nx = (curr.x + dx + this.width) % this.width;
-                const ny = Math.max(0, Math.min(this.height - 1, curr.y + dy));
-                const s = this.grid[ny][nx];
-
-                // Claim land sectors that haven't been claimed yet
-                if (s.height >= 0.48 && s.nationId === -1 && s.landform !== 'Ice cap') {
-                    s.nationId = curr.nationId;
-                    openQueue.push({ x: nx, y: ny, nationId: curr.nationId });
-                }
+                const nx = (curr.x + dx + W) % W;
+                const ny = Math.max(0, Math.min(H - 1, curr.y + dy));
+                const s  = this.grid[ny][nx];
+                if (!this._isLand(s) || s.nationId !== -1) continue;
+                // Mountains are harder to cross
+                const cost = curr.cost + 1 + (s.height > 0.72 ? 8 : 0) + (s.isRiver ? 0.5 : 0);
+                s.nationId = curr.nationId;
+                queue.push({ x: nx, y: ny, nationId: curr.nationId, cost });
+                queue.sort((a, b) => a.cost - b.cost);
             }
         }
 
-        // Plant additional regular cities
-        const totalCities = 15;
-        const cityNames = [
-            "Oasis Prime", "Seaside", "Riverbend", "Granite Keep", "Volcania", 
-            "Highpoint", "Ironwood", "Dune Gate", "Frost Peak", "Deepwell"
-        ];
-
-        for (let i = 0; i < totalCities; i++) {
-            const rx = Math.floor(this.rng.next() * this.width);
-            const ry = Math.floor(this.rng.next() * this.height);
-            const s = this.grid[ry][rx];
-
-            if (s.height >= 0.48 && !s.city && s.landform !== 'Ice cap' && s.landform !== 'Volcano') {
-                const name = this.rng.nextChoice(cityNames) + " " + (i + 1);
-                s.city = { name, isCapital: false, nationId: s.nationId };
-                this.cities.push({ name, x: rx, y: ry, nationId: s.nationId, isCapital: false });
-            }
+        // Scatter regional towns
+        const numTowns = Math.floor(W * 0.12);
+        for (let i = 0; i < numTowns; i++) {
+            const cx = this.rng.int(0, W - 1);
+            const cy = this.rng.int(0, H - 1);
+            const s  = this.grid[cy][cx];
+            if (!this._isLand(s) || s.city || ['Mountain','Snowcap','Ice Cap','Glacier','Volcano','Lava Field'].includes(s.biome)) continue;
+            const name = this.nameGen.city();
+            const pop  = this.rng.int(500, 40000);
+            s.city = { name, isCapital: false, nationId: s.nationId, pop };
+            this.cities.push({ name, x: cx, y: cy, nationId: s.nationId, isCapital: false, pop });
         }
+    }
 
-        // 5. Scatter Dungeon Points of Interest (POIs)
+    _scatterPOIs() {
+        const W = this.width, H = this.height;
+        const numPOIs = Math.floor(W * 0.06);
         this.pois = [];
-        const poiTypes = [
-            { type: "crypt", name: "Ancient Tomb", desc: "A forgotten resting place containing ancient curses.", theme: "crypt" },
-            { type: "stone", name: "Highland Keep", desc: "Ruined stone fortifications now crawling with goblins.", theme: "stone" },
-            { type: "cavern", name: "Sulfur Caves", desc: "Subterranean steam vents filled with sulfur and drakes.", theme: "cavern" },
-            { type: "temple", name: "Sunken Temple", desc: "Silt-covered corridors built to worship old swamp gods.", theme: "temple" }
-        ];
 
-        const numPois = 8;
-        for (let i = 0; i < numPois; i++) {
-            let px, py, s;
-            let attempts = 0;
-            
-            while (attempts < 100) {
-                px = Math.floor(this.rng.next() * this.width);
-                py = Math.floor(this.rng.next() * this.height);
-                s = this.grid[py][px];
-                if (s.height >= 0.48 && !s.city && !s.poi && s.landform !== 'Ice cap') {
-                    break;
-                }
-                attempts++;
+        for (let i = 0; i < numPOIs; i++) {
+            let px = 0, py = 0, s, att = 0;
+            while (att < 200) {
+                px = this.rng.int(0, W - 1);
+                py = this.rng.int(0, H - 1);
+                s  = this.grid[py][px];
+                if (this._isLand(s) && !s.city && !s.poi) break;
+                att++;
             }
+            if (!s || !this._isLand(s)) continue;
 
-            // Pick a matching theme based on landform
-            let t = poiTypes[0];
-            if (s.landform === 'Volcano' || s.landform === 'Canyon') {
-                t = poiTypes[2]; // sulfur cavern
-            } else if (s.landform === 'Mountain' || s.landform === 'Cliff') {
-                t = poiTypes[1]; // highland keep
-            } else if (s.landform === 'Valley' && s.moisture > 60) {
-                t = poiTypes[3]; // temple
-            } else {
-                t = this.rng.nextChoice(poiTypes);
-            }
+            // Find best matching POI type for this biome
+            const candidates = POI_TYPES.filter(p => p.biomes.includes(s.biome));
+            const poiType = candidates.length > 0 ? this.rng.pick(candidates) : this.rng.pick(POI_TYPES);
+            const poiName = poiType.icon + ' ' + poiType.name;
 
-            const name = t.name + " " + (i + 1);
             s.poi = {
-                type: t.type,
-                name: name,
-                desc: t.desc,
-                theme: t.theme,
-                seed: `world_${px}_${py}_${this.rng.nextChoice(['ab','xy','zk'])}`
+                type:  poiType.id,
+                icon:  poiType.icon,
+                label: poiType.name,
+                name:  poiName,
+                desc:  poiType.desc,
+                theme: poiType.theme,
+                seed:  `world_${this.seed}_${px}_${py}`,
             };
-            this.pois.push({ name: name, x: px, y: py, poi: s.poi });
+            this.pois.push({ ...s.poi, x: px, y: py });
         }
     }
 }
 
-// Visualizer UI Controller
+// ── Renderer ─────────────────────────────────────────────────────────────────
 class WorldVisualizer {
     constructor() {
-        this.canvas = document.getElementById('worldCanvas');
-        this.ctx = this.canvas.getContext('2d');
+        this.canvas    = document.getElementById('worldCanvas');
+        this.ctx       = this.canvas.getContext('2d');
         this.container = document.getElementById('worldCanvasContainer');
         this.inspector = document.getElementById('worldInspectorContent');
 
-        this.viewMode = 'surface'; // surface, slice, profile
-        this.selectedTile = null;
+        this.viewMode    = 'surface';
+        this.selectedTile= null;
+        this.selectedLayer= null;
+        this.selectedMat = null;
 
-        // Viewport camera properties for Global Map
+        // Camera
         this.scale = 1.0;
-        this.panX = 0;
-        this.panY = 0;
-        this.isPanning = false;
-        this.startX = 0;
-        this.startY = 0;
+        this.panX  = 0;
+        this.panY  = 0;
+        this._panning = false;
+        this._startX  = 0;
+        this._startY  = 0;
+        this._didPan  = false;
 
-        // Overlay states
-        this.politicalView = false;
-        this.showCities = true;
-        this.showPOIs = true;
+        // Overlays
+        this.showPolitical = false;
+        this.showCities    = true;
+        this.showPOIs      = true;
 
-        this.initializeUI();
-        this.regenerateWorld();
-        this.setupEvents();
+        // Cached image data for surface map (fast redraw)
+        this._surfaceCache = null;
+        this._cacheW = 0;
+        this._cacheH = 0;
+
+        this._initUI();
+        this._regenerate();
+        this._setupEvents();
     }
 
-    initializeUI() {
-        this.seedInput = document.getElementById('inputWorldSeed');
-        this.btnRandomSeed = document.getElementById('btnRandomWorldSeed');
-        this.selectSize = document.getElementById('selectPlanetSize');
-        this.selectCore = document.getElementById('selectCoreType');
-        this.selectTectonics = document.getElementById('selectTectonics');
-        this.selectAtmosphere = document.getElementById('selectAtmosphere');
-        this.selectClimate = document.getElementById('selectClimate');
-        this.btnForge = document.getElementById('btnForgeWorld');
+    _initUI() {
+        this.inp_seed  = document.getElementById('inputWorldSeed');
+        this.btn_rand  = document.getElementById('btnRandomWorldSeed');
+        this.sel_size  = document.getElementById('selectPlanetSize');
+        this.sel_core  = document.getElementById('selectCoreType');
+        this.sel_tect  = document.getElementById('selectTectonics');
+        this.sel_atm   = document.getElementById('selectAtmosphere');
+        this.sel_clim  = document.getElementById('selectClimate');
+        this.btn_forge = document.getElementById('btnForgeWorld');
+        this.chk_pol   = document.getElementById('chkPoliticalView');
+        this.chk_cit   = document.getElementById('chkShowCities');
+        this.chk_poi   = document.getElementById('chkShowPOIs');
 
-        this.btnZoomIn = document.getElementById('btnWorldZoomIn');
-        this.btnZoomOut = document.getElementById('btnWorldZoomOut');
-        this.btnZoomReset = document.getElementById('btnWorldZoomReset');
-
-        // Checkbox overlays
-        this.chkPolitical = document.getElementById('chkPoliticalView');
-        this.chkCities = document.getElementById('chkShowCities');
-        this.chkPOIs = document.getElementById('chkShowPOIs');
-
-        // Set random seed initially
-        this.seedInput.value = Math.floor(Math.random() * 99999).toString();
+        this.inp_seed.value = Math.floor(Math.random() * 999999).toString();
     }
 
-    regenerateWorld() {
-        const seed = this.seedInput.value;
-        const size = this.selectSize.value;
-        const core = this.selectCore.value;
-        const tect = this.selectTectonics.value;
-        const atmos = this.selectAtmosphere.value;
-        const clim = this.selectClimate.value;
-
-        this.world = new WorldEngine(seed, size, core, tect, atmos, clim);
-        this.selectedTile = this.world.grid[Math.floor(this.world.height/2)][Math.floor(this.world.width/2)];
-        
-        this.resetCamera();
-        this.resizeCanvas();
-        this.draw();
-        this.updateInspector();
+    _regenerate() {
+        const seed = this.inp_seed.value || String(Math.random());
+        this.world = new WorldEngine(
+            seed,
+            this.sel_size.value,
+            this.sel_core.value,
+            this.sel_tect.value,
+            this.sel_atm.value,
+            this.sel_clim.value,
+        );
+        this._surfaceCache = null;  // invalidate cache
+        this.selectedTile  = this.world.grid[Math.floor(this.world.height / 2)][Math.floor(this.world.width / 2)];
+        this._resetCamera();
+        this._resizeCanvas();
+        this._updateInspector();
+        this._showToast('🌍 World forged — seed: ' + seed);
     }
 
-    resizeCanvas() {
-        const rect = this.container.getBoundingClientRect();
-        this.canvas.width = rect.width;
-        this.canvas.height = rect.height;
-        this.draw();
+    _resetCamera() { this.scale = 1; this.panX = 0; this.panY = 0; }
+
+    _resizeCanvas() {
+        const r = this.container.getBoundingClientRect();
+        this.canvas.width  = r.width  || 800;
+        this.canvas.height = r.height || 600;
+        this._surfaceCache = null;
+        this._draw();
     }
 
-    resetCamera() {
-        this.scale = 1.0;
-        this.panX = 0;
-        this.panY = 0;
-    }
+    _setupEvents() {
+        window.addEventListener('resize', () => this._resizeCanvas());
+        this.btn_rand.addEventListener('click',  () => { this.inp_seed.value = Math.floor(Math.random() * 999999).toString(); });
+        this.btn_forge.addEventListener('click', () => this._regenerate());
+        this.chk_pol.addEventListener('change',  () => { this.showPolitical = this.chk_pol.checked; this._surfaceCache = null; this._draw(); });
+        this.chk_cit.addEventListener('change',  () => { this.showCities    = this.chk_cit.checked; this._draw(); });
+        this.chk_poi.addEventListener('change',  () => { this.showPOIs      = this.chk_poi.checked; this._draw(); });
 
-    setupEvents() {
-        window.addEventListener('resize', () => this.resizeCanvas());
-
-        this.btnRandomSeed.addEventListener('click', () => {
-            this.seedInput.value = Math.floor(Math.random() * 999999).toString();
-        });
-
-        this.btnForge.addEventListener('click', () => this.regenerateWorld());
-
-        // Overlay checkbox triggers
-        this.chkPolitical.addEventListener('change', () => {
-            this.politicalView = this.chkPolitical.checked;
-            this.draw();
-        });
-        this.chkCities.addEventListener('change', () => {
-            this.showCities = this.chkCities.checked;
-            this.draw();
-        });
-        this.chkPOIs.addEventListener('change', () => {
-            this.showPOIs = this.chkPOIs.checked;
-            this.draw();
-        });
-
-        // Tab switches
-        const tabs = document.querySelectorAll('#worldViewTabs .level-tab');
-        tabs.forEach(tab => {
+        // View tabs
+        document.querySelectorAll('#worldViewTabs .level-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('#worldViewTabs .level-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 this.viewMode = tab.getAttribute('data-view');
-                
-                // Show/hide political toggles
-                const controls = document.getElementById('worldMapControls');
-                if (this.viewMode === 'surface') {
-                    controls.style.display = 'flex';
-                    document.getElementById('txtWorldViewTitle').textContent = 'Global Surface Map';
-                } else {
-                    controls.style.display = 'none';
-                    document.getElementById('txtWorldViewTitle').textContent = this.viewMode === 'slice' ? 'Planetary Concentric Slice' : 'Drill Geological Profile';
-                }
-
-                this.resetCamera();
-                this.draw();
-                this.updateInspector();
+                const ctrl = document.getElementById('worldMapControls');
+                ctrl.style.display = (this.viewMode === 'surface') ? 'flex' : 'none';
+                document.getElementById('txtWorldViewTitle').textContent =
+                    this.viewMode === 'surface' ? 'Global Surface Map' :
+                    this.viewMode === 'slice'   ? 'Planetary Concentric Slice' : 'Geological Drill Profile';
+                this._resetCamera();
+                this._draw();
+                this._updateInspector();
             });
         });
 
-        // Zoom controls
-        this.btnZoomIn.addEventListener('click', () => {
-            this.scale = Math.min(4.0, this.scale * 1.2);
-            this.draw();
-        });
-        this.btnZoomOut.addEventListener('click', () => {
-            this.scale = Math.max(0.5, this.scale / 1.2);
-            this.draw();
-        });
-        this.btnZoomReset.addEventListener('click', () => {
-            this.resetCamera();
-            this.draw();
-        });
+        // Zoom buttons
+        document.getElementById('btnWorldZoomIn').addEventListener('click',    () => { this.scale = Math.min(8, this.scale * 1.25); this._draw(); });
+        document.getElementById('btnWorldZoomOut').addEventListener('click',   () => { this.scale = Math.max(0.3, this.scale / 1.25); this._draw(); });
+        document.getElementById('btnWorldZoomReset').addEventListener('click', () => { this._resetCamera(); this._draw(); });
 
-        // Mouse interactions
-        this.canvas.addEventListener('mousedown', (e) => {
-            this.isPanning = true;
-            this.startX = e.clientX - this.panX;
-            this.startY = e.clientY - this.panY;
+        // Mouse
+        this.canvas.addEventListener('mousedown', e => {
+            this._panning = true;
+            this._didPan  = false;
+            this._startX  = e.clientX - this.panX;
+            this._startY  = e.clientY - this.panY;
         });
-
-        this.canvas.addEventListener('mousemove', (e) => {
-            const rect = this.canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            if (this.isPanning) {
-                this.panX = e.clientX - this.startX;
-                this.panY = e.clientY - this.startY;
-                this.draw();
-            } else {
-                // Highlight tiles/sectors on hover
-                if (this.viewMode === 'surface') {
-                    const sector = this.getSectorFromCoords(mouseX, mouseY);
-                    if (sector) {
-                        document.getElementById('txtWorldCoords').textContent = `Lat: ${sector.lat}°, Lon: ${sector.lon}°`;
-                        document.getElementById('txtWorldSector').textContent = `Hovered Sector: ${sector.landform} (${sector.liquid === 'None' ? 'Dry' : sector.liquid})`;
-                    }
+        this.canvas.addEventListener('mousemove', e => {
+            if (this._panning) {
+                const dx = e.clientX - this._startX - this.panX;
+                const dy = e.clientY - this._startY - this.panY;
+                if (Math.abs(dx) + Math.abs(dy) > 3) this._didPan = true;
+                this.panX = e.clientX - this._startX;
+                this.panY = e.clientY - this._startY;
+                this._draw();
+            } else if (this.viewMode === 'surface') {
+                const s = this._tileFromMouse(e);
+                if (s) {
+                    document.getElementById('txtWorldCoords').textContent = `Lat: ${s.lat}°, Lon: ${s.lon}°`;
+                    document.getElementById('txtWorldSector').textContent = `${s.biome}${s.isRiver ? ' (River)' : ''}`;
                 }
             }
         });
-
-        this.canvas.addEventListener('mouseup', (e) => {
-            this.isPanning = false;
+        this.canvas.addEventListener('mouseup', e => {
+            this._panning = false;
+            if (this._didPan) return;  // was a pan, not a click
             const rect = this.canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            // Click interaction to select tile/layers
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
             if (this.viewMode === 'surface') {
-                const sector = this.getSectorFromCoords(mouseX, mouseY);
-                if (sector) {
-                    this.selectedTile = sector;
-                    this.updateInspector();
-                }
+                const s = this._tileFromMouse(e);
+                if (s) { this.selectedTile = s; this._draw(); this._updateInspector(); }
             } else if (this.viewMode === 'slice') {
-                const layer = this.getInternalLayerFromCoords(mouseX, mouseY);
-                if (layer) {
-                    this.selectedLayer = layer;
-                    this.updateInspector();
-                }
-            } else if (this.viewMode === 'profile') {
-                const material = this.getGeologicalMaterialFromCoords(mouseX, mouseY);
-                if (material) {
-                    this.selectedMaterial = material;
-                    this.updateInspector();
-                }
-            }
-        });
-
-        this.canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const zoomFactor = 1.1;
-            if (e.deltaY < 0) {
-                this.scale = Math.min(4.0, this.scale * zoomFactor);
+                const l = this._sliceLayerFromMouse(mx, my);
+                if (l) { this.selectedLayer = l; this._updateInspector(); }
             } else {
-                this.scale = Math.max(0.5, this.scale / zoomFactor);
+                const m = this._profileMatFromMouse(mx, my);
+                if (m) { this.selectedMat = m; this._updateInspector(); }
             }
-            this.draw();
         });
+        this.canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+            this.scale = Math.min(8, Math.max(0.3, this.scale * factor));
+            this._surfaceCache = null;
+            this._draw();
+        }, { passive: false });
     }
 
-    getSectorFromCoords(mx, my) {
-        // Calculate centered offset
-        const totalMapWidth = this.world.width * 14 * this.scale;
-        const totalMapHeight = this.world.height * 14 * this.scale;
-        const originX = (this.canvas.width - totalMapWidth) / 2 + this.panX;
-        const originY = (this.canvas.height - totalMapHeight) / 2 + this.panY;
-
-        const tileX = Math.floor((mx - originX) / (14 * this.scale));
-        const tileY = Math.floor((my - originY) / (14 * this.scale));
-
-        if (tileX >= 0 && tileX < this.world.width && tileY >= 0 && tileY < this.world.height) {
-            return this.world.grid[tileY][tileX];
-        }
+    // ── Tile Helpers ─────────────────────────────────────────────────────────
+    _tileSize() {
+        const cw = this.canvas.width, ch = this.canvas.height;
+        const tw = cw / this.world.width;
+        const th = ch / this.world.height;
+        return Math.min(tw, th) * this.scale;
+    }
+    _mapOrigin() {
+        const ts  = this._tileSize();
+        const mw  = this.world.width  * ts;
+        const mh  = this.world.height * ts;
+        return { ox: (this.canvas.width  - mw) / 2 + this.panX,
+                 oy: (this.canvas.height - mh) / 2 + this.panY,
+                 ts };
+    }
+    _tileFromMouse(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        const { ox, oy, ts } = this._mapOrigin();
+        const tx = Math.floor((mx - ox) / ts);
+        const ty = Math.floor((my - oy) / ts);
+        if (tx >= 0 && tx < this.world.width && ty >= 0 && ty < this.world.height) return this.world.grid[ty][tx];
         return null;
     }
 
-    getInternalLayerFromCoords(mx, my) {
-        const cx = this.canvas.width / 2 + this.panX;
-        const cy = this.canvas.height / 2 + this.panY;
-        const dx = mx - cx;
-        const dy = my - cy;
-        const dist = Math.sqrt(dx*dx + dy*dy) / this.scale;
-
-        // Radius ranges (drawn outwards)
-        // Core: 0-60, Mantle: 60-140, Asthenosphere: 140-165, Lithosphere: 165-185, Crust: 185-195
-        // Atmospheres: Troposphere: 195-208, Stratosphere: 208-220, Mesosphere: 220-232, Thermosphere: 232-248, Exosphere: 248-265, Magnetosphere: 265-290
-        if (dist <= 60) return { type: 'core', layer: this.world.coreLayers[4] };
-        if (dist <= 140) return { type: 'mantle', layer: this.world.coreLayers[3] };
-        if (dist <= 165) return { type: 'asthenosphere', layer: this.world.coreLayers[2] };
-        if (dist <= 185) return { type: 'lithosphere', layer: this.world.coreLayers[1] };
-        if (dist <= 195) return { type: 'crust', layer: this.world.coreLayers[0] };
-        
-        // Atmosphere indices
-        if (dist <= 208) return { type: 'atmos', layer: this.world.atmosphereLayers[0] };
-        if (dist <= 220) return { type: 'atmos', layer: this.world.atmosphereLayers[1] };
-        if (dist <= 232) return { type: 'atmos', layer: this.world.atmosphereLayers[2] };
-        if (dist <= 248) return { type: 'atmos', layer: this.world.atmosphereLayers[3] };
-        if (dist <= 265) return { type: 'atmos', layer: this.world.atmosphereLayers[4] };
-        if (dist <= 290) return { type: 'atmos', layer: this.world.atmosphereLayers[5] };
-
-        return null;
-    }
-
-    getGeologicalMaterialFromCoords(mx, my) {
-        const topY = 80 * this.scale + this.panY;
-        const colWidth = 240 * this.scale;
-        const colLeft = (this.canvas.width - colWidth) / 2 + this.panX;
-
-        if (mx >= colLeft && mx <= colLeft + colWidth) {
-            const dy = (my - topY) / this.scale;
-            if (dy >= 0 && dy <= 450) {
-                // 0-80: Troposphere gas
-                // 80-140: Soil/Sediment
-                // 140-230: Regolith
-                // 230-360: Bedrock
-                // 360-450: Magma Reservoir
-                if (dy <= 80) return { type: 'material', name: 'Troposphere Air / Atmosphere', desc: 'Lower atmospheric gases interacting with the soil.', items: ['Nitrogen', 'Oxygen', 'Argon', 'Carbon Dioxide'] };
-                if (dy <= 140) return { type: 'material', name: 'Soil & Sediment Layers', desc: 'Loose topsoil containing organic decomposition and mineral sediments.', items: ['Humus', 'Lilt clay', 'Organic sediments'] };
-                if (dy <= 230) return { type: 'material', name: 'Regolith Zone', desc: 'A layer of loose, heterogeneous rocky debris sitting directly above solid bedrock.', items: ['Fragmented bedrock', 'Crushed stone dust', 'Weathered minerals'] };
-                if (dy <= 360) return { type: 'material', name: 'Solid Bedrock Layer', desc: 'Impermeable, lithified solid rock forming the foundation of the local crust.', items: ['Feldspar', 'Quartz', 'Local igneous/metamorphic matrix'] };
-                return { type: 'material', name: 'Magma & Lava Reservoir', desc: 'Deep geothermal chambers containing molten rock under extreme crustal pressure.', items: ['Liquid Basalt', 'Dissolved Volatile Gases', 'Felsic Magma'] };
-            }
-        }
-        return null;
-    }
-
-    draw() {
+    // ── Draw Dispatcher ───────────────────────────────────────────────────────
+    _draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        if (this.viewMode === 'surface') {
-            this.drawSurfaceMap();
-        } else if (this.viewMode === 'slice') {
-            this.drawConcentricSlice();
-        } else if (this.viewMode === 'profile') {
-            this.drawGeologicalProfile();
-        }
+        if (!this.world) return;
+        if (this.viewMode === 'surface')       this._drawSurface();
+        else if (this.viewMode === 'slice')    this._drawSlice();
+        else                                   this._drawProfile();
     }
 
-    drawSurfaceMap() {
-        const tileSize = 14 * this.scale;
-        const totalMapWidth = this.world.width * tileSize;
-        const totalMapHeight = this.world.height * tileSize;
-        
-        // Origin coordinates centered in canvas
-        const originX = (this.canvas.width - totalMapWidth) / 2 + this.panX;
-        const originY = (this.canvas.height - totalMapHeight) / 2 + this.panY;
+    // ── Surface Map ───────────────────────────────────────────────────────────
+    _drawSurface() {
+        const { ox, oy, ts } = this._mapOrigin();
+        const W = this.world.width, H = this.world.height;
 
-        // Draw sector grid
-        for (let y = 0; y < this.world.height; y++) {
-            for (let x = 0; x < this.world.width; x++) {
-                const s = this.world.grid[y][x];
-                let color = '#2e4c27'; // Default plain green
+        // Build a pixel buffer for the base terrain (cached)
+        const pw = Math.max(1, Math.round(W * ts));
+        const ph = Math.max(1, Math.round(H * ts));
+        if (!this._surfaceCache || this._cacheW !== pw || this._cacheH !== ph) {
+            this._buildSurfaceCache(pw, ph, W, H);
+        }
+        this.ctx.putImageData(this._surfaceCache, Math.round(ox), Math.round(oy));
 
-                if (this.politicalView && s.nationId !== -1) {
-                    color = this.world.nations[s.nationId].color;
-                } else {
-                    // Geographical colors
-                    if (s.liquid === 'Ocean') {
-                        color = '#1b2c4c';
-                    } else if (s.liquid === 'Sea') {
-                        color = '#263d68';
-                    } else if (s.liquid === 'Lake') {
-                        color = '#386694';
-                    } else if (s.liquid === 'River') {
-                        color = '#52b788';
-                    } else if (s.liquid === 'Glacier') {
-                        color = '#a2d2ff';
-                    } else if (s.landform === 'Ice cap') {
-                        color = '#e9ecef';
-                    } else if (s.landform === 'Mountain') {
-                        color = '#4a4e69';
-                    } else if (s.landform === 'Ridge' || s.landform === 'Plateau') {
-                        color = '#8d99ae';
-                    } else if (s.landform === 'Desert' || s.landform === 'Dune') {
-                        color = '#e9c46a';
-                    } else if (s.landform === 'Volcano') {
-                        color = s.liquid === 'Lava' ? '#ff3f3f' : '#6f1d1b';
-                    } else if (s.landform === 'Trench') {
-                        color = '#0b0f19';
-                    } else if (s.landform === 'Canyon') {
-                        color = '#aa7c11';
-                    } else if (s.landform === 'Valley') {
-                        color = '#38b000';
+        // Political overlay
+        if (this.showPolitical) {
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const s = this.world.grid[y][x];
+                    if (s.nationId !== -1) {
+                        const col = this.world.nations[s.nationId].color;
+                        this.ctx.fillStyle = this._hexToRgba(col, 0.38);
+                        this.ctx.fillRect(ox + x * ts, oy + y * ts, ts, ts);
                     }
                 }
-
-                this.ctx.fillStyle = color;
-                this.ctx.fillRect(originX + x * tileSize, originY + y * tileSize, tileSize - 0.5, tileSize - 0.5);
-
-                // Highlight selected tile
-                if (this.selectedTile && this.selectedTile.x === x && this.selectedTile.y === y) {
-                    this.ctx.strokeStyle = '#ffffff';
-                    this.ctx.lineWidth = Math.max(1.5, 2 * this.scale);
-                    this.ctx.strokeRect(originX + x * tileSize, originY + y * tileSize, tileSize - 0.5, tileSize - 0.5);
+            }
+            // Nation borders
+            this.ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+            this.ctx.lineWidth = 1;
+            const dirs = [[1,0],[0,1]];
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const s = this.world.grid[y][x];
+                    for (const [dx, dy] of dirs) {
+                        const nx = (x + dx + W) % W, ny = Math.min(H - 1, y + dy);
+                        const nb = this.world.grid[ny][nx];
+                        if (s.nationId !== nb.nationId && (s.nationId !== -1 || nb.nationId !== -1)) {
+                            this.ctx.beginPath();
+                            if (dx === 1) { this.ctx.moveTo(ox + (x+1)*ts, oy + y*ts); this.ctx.lineTo(ox + (x+1)*ts, oy + (y+1)*ts); }
+                            else          { this.ctx.moveTo(ox + x*ts, oy + (y+1)*ts); this.ctx.lineTo(ox + (x+1)*ts, oy + (y+1)*ts); }
+                            this.ctx.stroke();
+                        }
+                    }
                 }
             }
         }
 
-        // Draw cities and capitals overlay
+        // Selected tile highlight
+        if (this.selectedTile) {
+            const { x, y } = this.selectedTile;
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = Math.max(1.5, 2.5 * Math.min(this.scale, 2));
+            this.ctx.strokeRect(ox + x * ts + 0.5, oy + y * ts + 0.5, ts - 1, ts - 1);
+        }
+
+        // Cities overlay
         if (this.showCities) {
             for (const c of this.world.cities) {
-                const px = originX + c.x * tileSize + tileSize / 2;
-                const py = originY + c.y * tileSize + tileSize / 2;
-                const radius = c.isCapital ? 6 * this.scale : 4 * this.scale;
-
-                this.ctx.fillStyle = c.isCapital ? '#ffd166' : '#ffffff';
-                this.ctx.strokeStyle = '#222222';
-                this.ctx.lineWidth = 1.5 * this.scale;
-
-                // Draw circle
+                const px = ox + (c.x + 0.5) * ts, py = oy + (c.y + 0.5) * ts;
+                const r  = (c.isCapital ? 5 : 3) * Math.min(this.scale * 0.7, 2);
                 this.ctx.beginPath();
-                this.ctx.arc(px, py, radius, 0, Math.PI * 2);
+                this.ctx.arc(px, py, r, 0, Math.PI * 2);
+                this.ctx.fillStyle = c.isCapital ? '#ffd166' : '#ffffff';
                 this.ctx.fill();
+                this.ctx.strokeStyle = '#111';
+                this.ctx.lineWidth = 1;
                 this.ctx.stroke();
-
-                if (this.scale >= 1.0) {
-                    this.ctx.fillStyle = '#ffffff';
-                    this.ctx.font = `bold ${10 * this.scale}px 'Share', sans-serif`;
+                if (ts >= 4) {
+                    this.ctx.fillStyle = c.isCapital ? '#ffe599' : '#e5e0c3';
+                    this.ctx.font = `${c.isCapital ? 'bold ' : ''}${Math.max(8, Math.min(12, ts * 0.9))}px 'Share', sans-serif`;
                     this.ctx.textAlign = 'center';
-                    this.ctx.shadowColor = 'black';
-                    this.ctx.shadowBlur = 3;
-                    this.ctx.fillText(c.name, px, py - radius - 3);
-                    this.ctx.shadowBlur = 0; // reset
+                    this.ctx.shadowColor = '#000'; this.ctx.shadowBlur = 3;
+                    this.ctx.fillText(c.name, px, py - r - 2);
+                    this.ctx.shadowBlur = 0;
                 }
             }
         }
 
-        // Draw Dungeon Points of Interest overlay
+        // POIs overlay
         if (this.showPOIs) {
             for (const p of this.world.pois) {
-                const px = originX + p.x * tileSize + tileSize / 2;
-                const py = originY + p.y * tileSize + tileSize / 2;
-
-                this.ctx.fillStyle = '#ff4d6d';
-                this.ctx.strokeStyle = '#ffffff';
-                this.ctx.lineWidth = 1 * this.scale;
-
-                // Draw diamond for POIs
+                const px = ox + (p.x + 0.5) * ts, py = oy + (p.y + 0.5) * ts;
+                const sz = Math.max(5, Math.min(10, ts * 0.65));
+                // Diamond
                 this.ctx.beginPath();
-                this.ctx.moveTo(px, py - 5 * this.scale);
-                this.ctx.lineTo(px + 5 * this.scale, py);
-                this.ctx.lineTo(px, py + 5 * this.scale);
-                this.ctx.lineTo(px - 5 * this.scale, py);
+                this.ctx.moveTo(px, py - sz);
+                this.ctx.lineTo(px + sz * 0.7, py);
+                this.ctx.lineTo(px, py + sz);
+                this.ctx.lineTo(px - sz * 0.7, py);
                 this.ctx.closePath();
+                this.ctx.fillStyle   = '#ff4d6d';
+                this.ctx.strokeStyle = '#fff';
+                this.ctx.lineWidth   = 1;
                 this.ctx.fill();
                 this.ctx.stroke();
-
-                if (this.scale >= 0.8) {
+                if (ts >= 5) {
                     this.ctx.fillStyle = '#ffd166';
-                    this.ctx.font = `${9 * this.scale}px 'Share', sans-serif`;
+                    this.ctx.font = `${Math.max(8, Math.min(10, ts * 0.7))}px 'Share', sans-serif`;
                     this.ctx.textAlign = 'center';
-                    this.ctx.shadowColor = 'black';
-                    this.ctx.shadowBlur = 4;
-                    this.ctx.fillText(p.name, px, py + 12 * this.scale);
-                    this.ctx.shadowBlur = 0; // reset
+                    this.ctx.shadowColor = '#000'; this.ctx.shadowBlur = 4;
+                    this.ctx.fillText(p.label, px, py + sz + 10);
+                    this.ctx.shadowBlur = 0;
                 }
             }
         }
+
+        // Legend
+        this._drawLegend();
     }
 
-    drawConcentricSlice() {
-        const cx = this.canvas.width / 2 + this.panX;
-        const cy = this.canvas.height / 2 + this.panY;
-        const baseRadius = this.scale;
+    _buildSurfaceCache(pw, ph, W, H) {
+        const img = new ImageData(pw, ph);
+        const data = img.data;
+        for (let iy = 0; iy < ph; iy++) {
+            const ty = Math.floor(iy / ph * H);
+            for (let ix = 0; ix < pw; ix++) {
+                const tx = Math.floor(ix / pw * W);
+                const s  = this.world.grid[ty][tx];
+                const info = BIOMES[s.biome] || BIOMES['Ocean'];
+                let [r, g, b] = info.col;
 
-        // Radii values
-        const rCore = 60 * baseRadius;
-        const rMantle = 140 * baseRadius;
-        const rAstheno = 165 * baseRadius;
-        const rLitho = 185 * baseRadius;
-        const rCrust = 195 * baseRadius;
-        
-        // Atmosphere bands
-        const rTropo = 208 * baseRadius;
-        const rStrato = 220 * baseRadius;
-        const rMeso = 232 * baseRadius;
-        const rThermo = 248 * baseRadius;
-        const rExo = 265 * baseRadius;
-        const rMagneto = 290 * baseRadius;
+                // Height-based shading (hillshade)
+                const shade = 0.75 + s.height * 0.5;
+                r = Math.min(255, Math.round(r * shade));
+                g = Math.min(255, Math.round(g * shade));
+                b = Math.min(255, Math.round(b * shade));
 
-        // Draw Magnetosphere (Outer blue halo shield)
-        const glow = this.ctx.createRadialGradient(cx, cy, rExo, cx, cy, rMagneto);
-        glow.addColorStop(0, 'rgba(102, 136, 170, 0.4)');
-        glow.addColorStop(0.5, 'rgba(102, 136, 170, 0.15)');
-        glow.addColorStop(1, 'rgba(102, 136, 170, 0.0)');
-        this.ctx.fillStyle = glow;
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, rMagneto, 0, Math.PI * 2);
-        this.ctx.fill();
+                // River tint override
+                if (s.isRiver) { r = 58; g = 148; b = 180; }
 
-        // Draw atmosphere rings
-        const atmosColors = [
-            { r: rExo, color: 'rgba(255, 255, 255, 0.04)' },
-            { r: rThermo, color: 'rgba(255, 200, 100, 0.08)' }, // ionosphere warm hue
-            { r: rMeso, color: 'rgba(100, 200, 255, 0.08)' },
-            { r: rStrato, color: 'rgba(120, 230, 255, 0.15)' },
-            { r: rTropo, color: 'rgba(200, 240, 255, 0.3)' }
+                const idx = (iy * pw + ix) * 4;
+                data[idx]   = r;
+                data[idx+1] = g;
+                data[idx+2] = b;
+                data[idx+3] = 255;
+            }
+        }
+        this._surfaceCache = img;
+        this._cacheW = pw;
+        this._cacheH = ph;
+    }
+
+    _drawLegend() {
+        const ctx = this.ctx;
+        const items = [
+            { col: [12, 24, 58], label: 'Deep Ocean' },
+            { col: [22, 54, 105], label: 'Ocean' },
+            { col: [52, 112, 48], label: 'Forest' },
+            { col: [86, 148, 52], label: 'Grassland' },
+            { col: [210, 170, 80], label: 'Desert' },
+            { col: [88, 88, 112], label: 'Mountain' },
+            { col: [230, 188, 70], label: 'Dune Sea' },
+            { col: [96, 28, 18], label: 'Volcano' },
         ];
-
-        for (const layer of atmosColors) {
-            this.ctx.fillStyle = layer.color;
-            this.ctx.beginPath();
-            this.ctx.arc(cx, cy, layer.r, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-            this.ctx.lineWidth = 1;
-            this.ctx.stroke();
-        }
-
-        // Draw solid layers
-        // Crust (Basalt/Granite grey shell)
-        this.ctx.fillStyle = '#6d5959';
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, rCrust, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Lithosphere (Brittle grey-black)
-        this.ctx.fillStyle = '#3a3a3a';
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, rLitho, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Asthenosphere (Ductile reddish-brown magma-rock blend)
-        this.ctx.fillStyle = '#5c1d1d';
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, rAstheno, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Mantle (Deep molten viscous red-orange)
-        this.ctx.fillStyle = '#8f2500';
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, rMantle, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Core (Liquid heavy glowing center)
-        let coreColor = '#ffd166'; // Default iron-nickel yellow
-        if (this.world.coreType === 'silicate') coreColor = '#4a4e69';
-        if (this.world.coreType === 'gold-molten') coreColor = '#ffb703';
-        if (this.world.coreType === 'crystal') coreColor = '#00f5d4';
-
-        const coreGlow = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, rCore);
-        coreGlow.addColorStop(0, '#ffffff');
-        coreGlow.addColorStop(0.4, coreColor);
-        coreGlow.addColorStop(1, '#8f2500'); // blend into mantle
-        
-        this.ctx.fillStyle = coreGlow;
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, rCore, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Draw boundary rings for clean separation
-        this.ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-        this.ctx.lineWidth = 1;
-        const boundaries = [rCore, rMantle, rAstheno, rLitho, rCrust];
-        for (const b of boundaries) {
-            this.ctx.beginPath();
-            this.ctx.arc(cx, cy, b, 0, Math.PI * 2);
-            this.ctx.stroke();
-        }
-
-        // Draw radial labels if scale is large enough
-        if (this.scale >= 0.8) {
-            this.ctx.fillStyle = '#e5e0c3';
-            this.ctx.font = `${11 * this.scale}px 'Share', sans-serif`;
-            this.ctx.textAlign = 'left';
-
-            this.ctx.fillText("Exosphere Layer", cx + rExo + 5, cy - 5);
-            this.ctx.fillText("Thermosphere (Auroras)", cx + rThermo + 5, cy + 12);
-            this.ctx.fillText("Crust (Granite & Basalt)", cx + rCrust - 40, cy + rCrust - 20);
-            this.ctx.fillText("Molten Core Boundary", cx + 15, cy - rCore + 15);
-        }
+        const x0 = 14, y0 = this.canvas.height - 14 - items.length * 16;
+        ctx.fillStyle = 'rgba(10,11,14,0.72)';
+        ctx.fillRect(x0 - 6, y0 - 10, 130, items.length * 16 + 14);
+        ctx.font = '10px Share, sans-serif';
+        items.forEach((it, i) => {
+            const y = y0 + i * 16;
+            ctx.fillStyle = `rgb(${it.col[0]},${it.col[1]},${it.col[2]})`;
+            ctx.fillRect(x0, y, 12, 10);
+            ctx.fillStyle = '#e5e0c3';
+            ctx.textAlign = 'left';
+            ctx.fillText(it.label, x0 + 18, y + 9);
+        });
     }
 
-    drawGeologicalProfile() {
-        const topY = 80 * this.scale + this.panY;
-        const colWidth = 240 * this.scale;
-        const colLeft = (this.canvas.width - colWidth) / 2 + this.panX;
+    _hexToRgba(hex, a) {
+        const r = parseInt(hex.slice(1,3), 16);
+        const g = parseInt(hex.slice(3,5), 16);
+        const b = parseInt(hex.slice(5,7), 16);
+        return `rgba(${r},${g},${b},${a})`;
+    }
 
-        // We draw 5 layers in a column format
-        // 1. Atmosphere gases (0-80px)
-        // 2. Soil & Sediments (80-140px)
-        // 3. Regolith (140-230px)
-        // 4. Bedrock (230-360px)
-        // 5. Magma reservoir (360-450px)
+    // ── Concentric Slice ──────────────────────────────────────────────────────
+    _drawSlice() {
+        const ctx = this.ctx;
+        const cx  = this.canvas.width / 2 + this.panX;
+        const cy  = this.canvas.height / 2 + this.panY;
+        const S   = this.scale;
+
+        // Radii
+        const R = {
+            innerCore: 45 * S, outerCore: 90 * S,
+            mantle: 160 * S, astheno: 185 * S,
+            litho: 202 * S,  crust: 214 * S,
+            tropo: 228 * S,  strato: 242 * S,
+            meso: 256 * S,   thermo: 272 * S,
+            exo: 290 * S,    magneto: 330 * S,
+        };
+        this._sliceR = R;
+
+        // Background stars
+        ctx.fillStyle = '#08090e';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        for (let i = 0; i < 200; i++) {
+            const sx = (i * 137.508) % this.canvas.width;
+            const sy = (i * 253.7)   % this.canvas.height;
+            ctx.fillStyle = `rgba(255,255,255,${0.1 + (i % 3) * 0.15})`;
+            ctx.fillRect(sx, sy, i % 5 === 0 ? 2 : 1, i % 5 === 0 ? 2 : 1);
+        }
+
+        // Magnetosphere glow
+        const mgGrad = ctx.createRadialGradient(cx, cy, R.exo, cx, cy, R.magneto);
+        mgGrad.addColorStop(0, 'rgba(100, 160, 255, 0.25)');
+        mgGrad.addColorStop(1, 'rgba(60, 100, 220, 0.0)');
+        ctx.fillStyle = mgGrad;
+        ctx.beginPath(); ctx.arc(cx, cy, R.magneto, 0, Math.PI*2); ctx.fill();
+
+        // Atmosphere rings (outer to inner)
+        const atmosRings = [
+            { r: R.exo,    col: 'rgba(255,255,255,0.03)' },
+            { r: R.thermo, col: 'rgba(255,200,100,0.07)' },
+            { r: R.meso,   col: 'rgba(130,210,255,0.10)' },
+            { r: R.strato, col: 'rgba(160,235,255,0.16)' },
+            { r: R.tropo,  col: 'rgba(200,240,255,0.28)' },
+        ];
+        for (const ar of atmosRings) {
+            ctx.fillStyle = ar.col;
+            ctx.beginPath(); ctx.arc(cx, cy, ar.r, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(cx, cy, ar.r, 0, Math.PI*2); ctx.stroke();
+        }
+
+        // Surface ring (shows actual surface biome colors as a thin ring with texture)
+        const N = this.world.width;
+        for (let i = 0; i < N; i++) {
+            const angle = (i / N) * Math.PI * 2 - Math.PI / 2;
+            const tx = Math.floor(i);
+            const ty = Math.floor(this.world.height / 2);  // equatorial strip
+            const s  = this.world.grid[ty][tx];
+            const info = BIOMES[s.biome] || BIOMES['Ocean'];
+            const [r, g, b] = info.col;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(angle) * R.crust, cy + Math.sin(angle) * R.crust);
+            ctx.arc(cx, cy, R.crust, angle, angle + (Math.PI * 2 / N) + 0.01);
+            ctx.lineTo(cx + Math.cos(angle + Math.PI * 2 / N) * R.tropo, cy + Math.sin(angle + Math.PI * 2 / N) * R.tropo);
+            ctx.arc(cx, cy, R.tropo, angle + Math.PI * 2 / N, angle, true);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(${r},${g},${b},0.7)`;
+            ctx.fill();
+        }
+
+        // Crust (silicate grey)
+        ctx.fillStyle = '#7a6a6a';
+        ctx.beginPath(); ctx.arc(cx, cy, R.crust, 0, Math.PI*2); ctx.fill();
+
+        // Lithosphere (dark grey)
+        ctx.fillStyle = '#4a4040';
+        ctx.beginPath(); ctx.arc(cx, cy, R.litho, 0, Math.PI*2); ctx.fill();
+
+        // Asthenosphere (dark red ductile)
+        const asGrad = ctx.createRadialGradient(cx, cy, R.astheno * 0.9, cx, cy, R.astheno);
+        asGrad.addColorStop(0, '#6e1a1a'); asGrad.addColorStop(1, '#3a0f0f');
+        ctx.fillStyle = asGrad;
+        ctx.beginPath(); ctx.arc(cx, cy, R.astheno, 0, Math.PI*2); ctx.fill();
+
+        // Mantle (molten orange-red gradient)
+        const mGrad = ctx.createRadialGradient(cx, cy, R.outerCore, cx, cy, R.mantle);
+        mGrad.addColorStop(0, '#a03010'); mGrad.addColorStop(1, '#601a08');
+        ctx.fillStyle = mGrad;
+        ctx.beginPath(); ctx.arc(cx, cy, R.mantle, 0, Math.PI*2); ctx.fill();
+
+        // Outer core
+        let cCore = '#ffd166';
+        if (this.world.coreType === 'silicate') cCore = '#7a7aaa';
+        if (this.world.coreType === 'gold-molten') cCore = '#ffb703';
+        if (this.world.coreType === 'crystal') cCore = '#00f5d4';
+        const ocGrad = ctx.createRadialGradient(cx, cy, R.innerCore, cx, cy, R.outerCore);
+        ocGrad.addColorStop(0, cCore); ocGrad.addColorStop(1, '#a03010');
+        ctx.fillStyle = ocGrad;
+        ctx.beginPath(); ctx.arc(cx, cy, R.outerCore, 0, Math.PI*2); ctx.fill();
+
+        // Inner core (bright solid crystalline)
+        const icGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, R.innerCore);
+        icGrad.addColorStop(0, '#ffffff');
+        icGrad.addColorStop(0.4, cCore);
+        icGrad.addColorStop(1, this._adjustBrightness(cCore, -40));
+        ctx.fillStyle = icGrad;
+        ctx.beginPath(); ctx.arc(cx, cy, R.innerCore, 0, Math.PI*2); ctx.fill();
+
+        // Layer separation lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+        for (const r of Object.values(R)) {
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+        }
+
+        // Labels
+        ctx.fillStyle = '#e5e0c3';
+        ctx.font = `${Math.max(9, 11 * S)}px 'Share', sans-serif`;
+        ctx.textAlign = 'left';
+        const lx = cx + R.magneto * 0.72;
+        const labelsRight = [
+            [R.exo + R.magneto, 'Magnetosphere'],
+            [R.thermo + R.exo,  'Exosphere'],
+            [R.strato + R.meso, 'Thermosphere'],
+            [R.tropo + R.strato,'Mesosphere / Stratosphere'],
+            [R.crust + R.tropo, 'Troposphere'],
+            [R.litho + R.crust, 'Crust / Lithosphere'],
+            [R.mantle,          'Mantle'],
+            [R.outerCore,       'Outer Core'],
+            [R.innerCore * 0.5, 'Inner Core'],
+        ];
+        labelsRight.forEach(([r, label]) => {
+            const a = -0.4;
+            ctx.fillText(label, cx + Math.cos(a) * r + 6, cy + Math.sin(a) * r);
+        });
+    }
+
+    _adjustBrightness(hex, amt) {
+        const r = Math.min(255, Math.max(0, parseInt(hex.slice(1,3), 16) + amt));
+        const g = Math.min(255, Math.max(0, parseInt(hex.slice(3,5), 16) + amt));
+        const b = Math.min(255, Math.max(0, parseInt(hex.slice(5,7), 16) + amt));
+        return `rgb(${r},${g},${b})`;
+    }
+
+    _sliceLayerFromMouse(mx, my) {
+        const cx  = this.canvas.width / 2 + this.panX;
+        const cy  = this.canvas.height / 2 + this.panY;
+        const d   = Math.sqrt((mx - cx) ** 2 + (my - cy) ** 2) / this.scale;
+        const R   = { innerCore:45, outerCore:90, mantle:160, astheno:185, litho:202, crust:214,
+                      tropo:228, strato:242, meso:256, thermo:272, exo:290, magneto:330 };
+        if (d <= R.innerCore) return { layer: this.world.coreLayers[5] };
+        if (d <= R.outerCore) return { layer: this.world.coreLayers[4] };
+        if (d <= R.mantle)    return { layer: this.world.coreLayers[3] };
+        if (d <= R.astheno)   return { layer: this.world.coreLayers[2] };
+        if (d <= R.litho)     return { layer: this.world.coreLayers[1] };
+        if (d <= R.crust)     return { layer: this.world.coreLayers[0] };
+        if (d <= R.tropo)     return { layer: this.world.atmosphereLayers[0] };
+        if (d <= R.strato)    return { layer: this.world.atmosphereLayers[1] };
+        if (d <= R.meso)      return { layer: this.world.atmosphereLayers[2] };
+        if (d <= R.thermo)    return { layer: this.world.atmosphereLayers[3] };
+        if (d <= R.exo)       return { layer: this.world.atmosphereLayers[4] };
+        if (d <= R.magneto)   return { layer: this.world.atmosphereLayers[5] };
+        return null;
+    }
+
+    // ── Geological Profile ────────────────────────────────────────────────────
+    _drawProfile() {
+        const ctx = this.ctx;
+        const CW = this.canvas.width, CH = this.canvas.height;
+        ctx.fillStyle = '#0a0b0e';
+        ctx.fillRect(0, 0, CW, CH);
+
+        const colW  = Math.min(280, CW * 0.35) * this.scale;
+        const colX  = CW / 2 - colW / 2 + this.panX;
+        const startY= 60 * this.scale + this.panY;
+        const tile  = this.selectedTile || this.world.grid[0][0];
+
         const layers = [
-            { h: 80, name: "Troposphere Atmosphere", color: 'rgba(200, 240, 255, 0.15)' },
-            { h: 60, name: `Topsoil / Sediments (${this.selectedTile.soil})`, color: '#6f523b' },
-            { h: 90, name: 'Weathered Regolith Layer', color: '#8b8070' },
-            { h: 130, name: `Solid Bedrock (${this.selectedTile.bedrock})`, color: '#4a4e5a' },
-            { h: 90, name: `Geothermal Magma Zone (${this.selectedTile.magmaPct}% heat)`, color: '#8f2500' }
+            { h: 70,  label: 'Atmosphere / Air Column',          col: [180, 220, 255, 0.15],soil: 'N₂, O₂, CO₂, Ar vapour' },
+            { h: 55,  label: `A-Horizon: ${tile.soil}`,          col: [120, 80, 40, 1],    soil: tile.soil },
+            { h: 70,  label: 'B-Horizon: Subsoil / Regolith',    col: [140, 120, 90, 1],   soil: 'Iron oxide clay, fragmented parent rock' },
+            { h: 100, label: `C-Horizon: Weathered ${tile.bedrock}`,col:[80,78,90,1],       soil: tile.bedrock },
+            { h: 120, label: `R-Horizon: Solid Bedrock`,         col: [55, 55, 70, 1],     soil: tile.bedrock + ' (consolidated)' },
+            { h: 80,  label: `Geothermal Zone (${tile.magmaPct}% heat index)`,col:[130,30,10,1],soil:'Molten basalt, dissolved gases' },
         ];
 
-        let currentY = topY;
-        for (let i = 0; i < layers.length; i++) {
-            const l = layers[i];
-            const height = l.h * this.scale;
+        let curY = startY;
+        this._profileLayers = [];
+        for (const lyr of layers) {
+            const lh = lyr.h * this.scale;
+            const [r, g, b, a] = lyr.col;
 
-            this.ctx.fillStyle = l.color;
-            this.ctx.fillRect(colLeft, currentY, colWidth, height);
-            
-            // Draw border
-            this.ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-            this.ctx.lineWidth = 1.5;
-            this.ctx.strokeRect(colLeft, currentY, colWidth, height);
+            // Gradient fill
+            const grad = ctx.createLinearGradient(colX, curY, colX + colW, curY + lh);
+            grad.addColorStop(0,   `rgba(${r+15},${g+10},${b+10},${a})`);
+            grad.addColorStop(0.5, `rgba(${r},${g},${b},${a})`);
+            grad.addColorStop(1,   `rgba(${Math.max(0,r-20)},${Math.max(0,g-15)},${Math.max(0,b-15)},${a})`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(colX, curY, colW, lh);
 
-            // Text labels
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = `bold ${12 * this.scale}px 'Share', sans-serif`;
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(l.name, colLeft + colWidth/2, currentY + height/2 + 4);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5;
+            ctx.strokeRect(colX, curY, colW, lh);
 
-            currentY += height;
+            // Layer text
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${Math.max(9, 11 * Math.min(this.scale, 1.5))}px 'Share', sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = '#000'; ctx.shadowBlur = 3;
+            ctx.fillText(lyr.label, colX + colW / 2, curY + lh / 2 + 4);
+            ctx.shadowBlur = 0;
+
+            // Left horizon label
+            ctx.fillStyle = '#ffd166';
+            ctx.font = `${Math.max(8, 10 * Math.min(this.scale, 1.5))}px 'Share', sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.fillText(`⟵ ${lyr.soil}`, colX - 6, curY + lh / 2 + 4);
+
+            this._profileLayers.push({ y1: curY, y2: curY + lh, x1: colX, x2: colX + colW,
+                name: lyr.label, desc: lyr.soil });
+            curY += lh;
         }
 
-        // Add soil horizon labels on the left of the column
-        this.ctx.fillStyle = '#ffd166';
-        this.ctx.font = `${11 * this.scale}px 'Share', sans-serif`;
-        this.ctx.textAlign = 'right';
-        
-        let labelY = topY;
-        this.ctx.fillText("O-Horizon (Air) —", colLeft - 10, labelY + 40 * this.scale);
-        labelY += 80 * this.scale;
-        this.ctx.fillText("A-Horizon (Organic Soil) —", colLeft - 10, labelY + 30 * this.scale);
-        labelY += 60 * this.scale;
-        this.ctx.fillText("C-Horizon (Fragmented Rock) —", colLeft - 10, labelY + 45 * this.scale);
-        labelY += 90 * this.scale;
-        this.ctx.fillText("R-Horizon (Bedrock) —", colLeft - 10, labelY + 65 * this.scale);
-        labelY += 130 * this.scale;
-        this.ctx.fillText("Geothermal Chamber —", colLeft - 10, labelY + 45 * this.scale);
+        // Depth ruler on right side
+        let depthM = 0;
+        const depthScale = [0, 1, 5, 20, 50, 120];
+        ctx.fillStyle = '#6688aa';
+        ctx.font = `${Math.max(8, 9 * Math.min(this.scale, 1.5))}px 'Share', sans-serif`;
+        ctx.textAlign = 'left';
+        layers.forEach((lyr, i) => {
+            const ly = startY + layers.slice(0, i).reduce((a,b) => a + b.h, 0) * this.scale;
+            ctx.fillText(`−${depthScale[i]}m`, colX + colW + 10, ly + 10);
+        });
     }
 
-    updateInspector() {
-        if (!this.selectedTile) return;
+    _profileMatFromMouse(mx, my) {
+        if (!this._profileLayers) return null;
+        for (const l of this._profileLayers) {
+            if (mx >= l.x1 && mx <= l.x2 && my >= l.y1 && my <= l.y2) {
+                return { name: l.name, desc: l.desc };
+            }
+        }
+        return null;
+    }
 
-        let md = '';
+    // ── Inspector ─────────────────────────────────────────────────────────────
+    _updateInspector() {
+        let html = '';
 
         if (this.viewMode === 'surface') {
             const tile = this.selectedTile;
-            const nationName = tile.nationId !== -1 ? this.world.nations[tile.nationId].name : "No Claims (Neutral Wilderness)";
-            
-            md += `<div class="inspector-section">`;
-            md += `<h3>Sector Coordinate [${tile.x}, ${tile.y}]</h3>`;
-            md += `<p><strong>Latitude</strong>: ${tile.lat}° | <strong>Longitude</strong>: ${tile.lon}°</p>`;
-            md += `</div>`;
+            if (!tile) { this.inspector.innerHTML = '<p>Click a tile to inspect.</p>'; return; }
+            const nation = tile.nationId !== -1 ? this.world.nations[tile.nationId] : null;
+            const biomeInfo = BIOMES[tile.biome] || BIOMES['Ocean'];
+            const isOcean = ['Deep Ocean','Ocean','Shallow Sea'].includes(tile.biome);
 
-            md += `<div class="inspector-section">`;
-            md += `<h4>Geographical Status</h4>`;
-            md += `<p><strong>Landform</strong>: ${tile.landform}</p>`;
-            md += `<p><strong>Hydrological Presence</strong>: ${tile.liquid === 'None' ? 'None (Dry Land)' : tile.liquid}</p>`;
-            md += `<p><strong>Local Climate</strong>: Temp: ${tile.temperature}°C | Moisture: ${tile.moisture}%</p>`;
-            md += `</div>`;
+            html += `<div class="inspector-section">
+                <h3>${tile.biome}</h3>
+                <p><strong>Coords</strong>: ${tile.lat}°${tile.lat > 0 ? 'N' : 'S'}, ${tile.lon}°${tile.lon > 0 ? 'E' : 'W'}</p>
+                <p><strong>Grid</strong>: [${tile.x}, ${tile.y}]</p>
+            </div>`;
 
-            md += `<div class="inspector-section">`;
-            md += `<h4>Territorial Sovereignty</h4>`;
-            md += `<p><strong>Political Jurisdiction</strong>: ${nationName}</p>`;
-            if (tile.city) {
-                md += `<p><strong>Settlement</strong>: 🏙️ <strong>${tile.city.name}</strong> ${tile.city.isCapital ? '(Capital City)' : '(Regional Town)'}</p>`;
+            html += `<div class="inspector-section">
+                <h4>Environmental Readings</h4>
+                <p>🌡️ <strong>Temperature</strong>: ${tile.temp}°C</p>
+                <p>💧 <strong>Moisture</strong>: ${tile.moisture}%</p>
+                ${!isOcean ? `<p>🪨 <strong>Soil</strong>: ${tile.soil}</p>
+                <p>⛰️ <strong>Bedrock</strong>: ${tile.bedrock}</p>
+                <p>🔥 <strong>Geothermal Index</strong>: ${tile.magmaPct}%</p>
+                <p>🌊 <strong>Aquifer Depth</strong>: ~${tile.aquifer}m</p>` : ''}
+                ${tile.isRiver ? '<p>〰️ <strong>Hydrological</strong>: River channel</p>' : ''}
+                ${tile.isLake  ? '<p>🏞️ <strong>Hydrological</strong>: Lake basin</p>' : ''}
+            </div>`;
+
+            if (!isOcean) {
+                html += `<div class="inspector-section">
+                    <h4>Political Territory</h4>`;
+                if (nation) {
+                    const [nr, ng, nb] = this._hexToRgbArr(nation.color);
+                    html += `<p>🏴 <strong>${nation.name}</strong></p>
+                    <div style="width:100%;height:4px;border-radius:2px;background:${nation.color};margin:4px 0;opacity:0.85;"></div>`;
+                } else {
+                    html += `<p style="color:var(--text-secondary)">🌿 Unclaimed Wilderness</p>`;
+                }
+                if (tile.city) {
+                    html += `<p>${tile.city.isCapital ? '🏛️' : '🏘️'} <strong>${tile.city.name}</strong> ${tile.city.isCapital ? '(Capital)' : '(Town)'}`;
+                    if (tile.city.pop) html += ` — pop. ${tile.city.pop.toLocaleString()}`;
+                    html += `</p>`;
+                }
+                html += `</div>`;
             }
-            md += `</div>`;
 
-            md += `<div class="inspector-section">`;
-            md += `<h4>Points of Interest</h4>`;
+            html += `<div class="inspector-section"><h4>⚔️ Points of Interest</h4>`;
             if (tile.poi) {
-                md += `<div class="poi-box" style="border: 1px solid var(--watabou-accent); padding: 8px; border-radius: 4px; background: rgba(102,136,170,0.1); margin-bottom: 8px;">`;
-                md += `<p><strong>🏛️ ${tile.poi.name}</strong></p>`;
-                md += `<p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">${tile.poi.desc}</p>`;
-                md += `<p style="font-size: 11px; font-family: monospace; color: var(--watabou-highlight);">POI Seed: ${tile.poi.seed}</p>`;
-                md += `</div>`;
-                md += `<a href="dungeon.html?seed=${tile.poi.seed}&theme=${tile.poi.theme}" target="_blank" class="btn btn-primary btn-icon" style="width: 100%; font-size:12px;">Explore Location (Forge Dungeon)</a>`;
+                html += `<div class="poi-box">
+                    <p><strong>${tile.poi.name}</strong></p>
+                    <p style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">${tile.poi.desc}</p>
+                    <p style="font-size:11px;font-family:monospace;color:var(--watabou-highlight);">Seed: ${tile.poi.seed}</p>
+                </div>
+                <a href="dungeon.html?seed=${encodeURIComponent(tile.poi.seed)}&theme=${tile.poi.theme}" target="_blank"
+                   class="btn btn-primary" style="width:100%;font-size:12px;display:block;text-align:center;margin-top:6px;">
+                   ⚔️ Explore Location (Forge Dungeon)
+                </a>`;
             } else {
-                md += `<p style="font-size: 12px; color: var(--text-secondary);">No historical ruins or dungeon points discovered in this sector.</p>`;
+                html += `<p style="font-size:12px;color:var(--text-secondary);">No dungeon points discovered in this sector.</p>`;
             }
-            md += `</div>`;
-            
+            html += `</div>`;
+
         } else if (this.viewMode === 'slice') {
             const sel = this.selectedLayer;
-            if (sel) {
-                md += `<div class="inspector-section">`;
-                md += `<h3>Selected Layer: ${sel.layer.name}</h3>`;
-                md += `<p><strong>Altitude / Thickness</strong>: ${sel.layer.alt || sel.layer.thickness}</p>`;
-                md += `</div>`;
-
-                md += `<div class="inspector-section">`;
-                md += `<h4>Scientific Readings</h4>`;
-                if (sel.layer.pressure) md += `<p><strong>Pressure Profile</strong>: ${sel.layer.pressure}</p>`;
-                if (sel.layer.temp) md += `<p><strong>Average Temperature</strong>: ${sel.layer.temp}</p>`;
-                if (sel.layer.state) md += `<p><strong>Physical State</strong>: ${sel.layer.state}</p>`;
-                if (sel.layer.composition) md += `<p><strong>Chemical Composition</strong>: ${sel.layer.composition}</p>`;
-                md += `</div>`;
-
-                md += `<div class="inspector-section">`;
-                md += `<h4>Geological Summary</h4>`;
-                md += `<p style="font-size:13px; color: var(--text-secondary); line-height:1.4;">${sel.layer.desc}</p>`;
-                md += `</div>`;
+            if (!sel) {
+                html = '<p style="color:var(--text-secondary);font-size:13px;">Click a ring or arc to inspect its properties.</p>';
             } else {
-                md += `<p>Click on any of the core circles or outer atmospheric rings to view physical layer analysis.</p>`;
+                const l = sel.layer;
+                html = `<div class="inspector-section"><h3>${l.name}</h3>
+                    <p><strong>Depth / Altitude</strong>: ${l.alt || l.thickness}</p></div>
+                <div class="inspector-section"><h4>Physical Properties</h4>
+                    ${l.temp ? `<p>🌡️ <strong>Temperature</strong>: ${l.temp}</p>` : ''}
+                    ${l.pressure ? `<p>📉 <strong>Pressure</strong>: ${l.pressure}</p>` : ''}
+                    ${l.state ? `<p>⚗️ <strong>State of Matter</strong>: ${l.state}</p>` : ''}
+                    ${l.composition ? `<p>🧪 <strong>Composition</strong>: ${l.composition}</p>` : ''}
+                </div>
+                <div class="inspector-section"><h4>Description</h4>
+                    <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;">${l.desc}</p>
+                </div>`;
             }
-        } else if (this.viewMode === 'profile') {
-            const m = this.selectedMaterial;
-            if (m) {
-                md += `<div class="inspector-section">`;
-                md += `<h3>Geological Unit: ${m.name}</h3>`;
-                md += `<p>${m.desc}</p>`;
-                md += `</div>`;
-
-                md += `<div class="inspector-section">`;
-                md += `<h4>Common Components</h4>`;
-                md += `<ul>`;
-                for (const item of m.items) {
-                    md += `<li>${item}</li>`;
-                }
-                md += `</ul>`;
-                md += `</div>`;
+        } else {
+            const m = this.selectedMat;
+            if (!m) {
+                html = '<p style="color:var(--text-secondary);font-size:13px;">Click a stratum in the drill column to analyze.</p>';
             } else {
-                md += `<p>Click on any horizontal segment of the drill column to analyze material density and composition.</p>`;
+                html = `<div class="inspector-section"><h3>${m.name}</h3></div>
+                <div class="inspector-section"><h4>Composition</h4>
+                    <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;">${m.desc}</p>
+                </div>`;
             }
         }
 
-        this.inspector.innerHTML = md;
+        this.inspector.innerHTML = html;
+    }
+
+    _hexToRgbArr(hex) {
+        return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────────
+    _showToast(msg) {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.cssText = `background:rgba(20,22,30,0.95);color:#e5e0c3;padding:10px 18px;border-radius:6px;
+            font-family:'Share',sans-serif;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,0.5);
+            border-left:3px solid #6688aa;opacity:1;transition:opacity 0.5s;`;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 550); }, 2400);
     }
 }
 
-// Initial initialization on load
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     window.visualizer = new WorldVisualizer();
 });
