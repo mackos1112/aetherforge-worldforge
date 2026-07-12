@@ -904,12 +904,15 @@ class WorldVisualizer {
             { col: [230, 188, 70], label: 'Dune Sea' },
             { col: [96, 28, 18], label: 'Volcano' },
         ];
-        const x0 = 14, y0 = this.canvas.height - 14 - items.length * 16;
-        ctx.fillStyle = 'rgba(10,11,14,0.72)';
-        ctx.fillRect(x0 - 6, y0 - 10, 130, items.length * 16 + 14);
+        const boxW = 134;
+        const boxH = items.length * 16 + 14;
+        const x0 = this.canvas.width - boxW - 14;
+        const y0 = 14;
+        ctx.fillStyle = 'rgba(10,11,14,0.82)';
+        ctx.fillRect(x0 - 6, y0, boxW, boxH);
         ctx.font = '10px Share, sans-serif';
         items.forEach((it, i) => {
-            const y = y0 + i * 16;
+            const y = y0 + 8 + i * 16;
             ctx.fillStyle = `rgb(${it.col[0]},${it.col[1]},${it.col[2]})`;
             ctx.fillRect(x0, y, 12, 10);
             ctx.fillStyle = '#e5e0c3';
