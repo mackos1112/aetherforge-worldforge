@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aetherforge | Player View Screen</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #030406 !important;
+        }
+        .player-viewport {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+            background-color: #050608;
+        }
+        #syncOverlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(10, 11, 14, 0.9);
+            border: 1px solid var(--border-color);
+            padding: 10px 18px;
+            border-radius: var(--radius-lg);
+            font-family: var(--font-heading);
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #ff3333;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #ff3333;
+        }
+        .pulse-dot.connected {
+            background-color: #33ff33;
+            box-shadow: 0 0 8px #33ff33;
+            animation: pulseSimple 1.5s infinite alternate;
+        }
+        @keyframes pulseSimple {
+            0% { opacity: 0.4; }
+            100% { opacity: 1.0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="player-viewport">
+        <!-- Floating Connectivity Indicator -->
+        <div id="syncOverlay">
+            <div class="pulse-dot" id="statusDot"></div>
+            <span id="statusText">Awaiting connection from DM screen...</span>
+        </div>
+
+        <!-- Canvas Container -->
+        <div class="canvas-container" id="canvasContainer">
+            <canvas id="mapCanvas"></canvas>
+        </div>
+    </div>
+
+    <!-- Receiver Core logic -->
+    <script type="module">
+        import { MapRenderer } from './js/renderer.js';
+        import { THEMES } from './js/config.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const renderer = new MapRenderer('mapCanvas', 'canvasContainer');
+            
+            // Configure renderer strictly for Player View mode
+            renderer.isPlayerView = true; 
+            
+            // Connect to BroadcastChannel
+            const channel = new BroadcastChannel('aetherforge_sync');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+
+            // Apply primary HSL themes
+            function applyTheme(themeKey) {
+                const tConf = THEMES[themeKey];
+                if (tConf) {
+                    document.documentElement.style.setProperty('--accent-hue', tConf.hue);
+                }
+            }
+
+            channel.onmessage = (e) => {
+                const msg = e.data;
+                
+                if (msg.type === 'sync_state') {
+                    // Update connection UI
+                    statusDot.className = 'pulse-dot connected';
+                    statusText.textContent = `Connected to DM | Layer: ${msg.levelKey.toUpperCase()}`;
+                    
+                    // Sync theme
+                    if (msg.levelKey === 'surface') {
+                        applyTheme(msg.biome);
+                    } else if (msg.levelKey === 'upper') {
+                        applyTheme(msg.theme);
+                    } else {
+                        applyTheme('cavern');
+                    }
+
+                    // Sync player fog details
+                    renderer.fogMask = msg.fogMask;
+                    renderer.playModeActive = msg.playModeActive;
+                    
+                    // Sync zoom/pan camera translation
+                    renderer.scale   = msg.scale;
+                    renderer.offsetX = msg.offsetX;
+                    renderer.offsetY = msg.offsetY;
+                    // applyTransform is a no-op now; animation loop redraws
+
+                    // Load Grid
+                    renderer.setMapData(
+                        msg.levelKey,
+                        msg.grid,
+                        msg.roomsData,
+                        msg.theme,
+                        msg.biome,
+                        msg.gridShape
+                    );
+                }
+            };
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planetary Worldforge | Aetherforge Generator</title>
+    <!-- Google Fonts: Merriweather (serif) and Share Tech / Share (sans-serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Share+Tech&family=Share:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Inline check for CORS / file protocol blocks -->
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.addEventListener('DOMContentLoaded', () => {
+                const warn = document.createElement('div');
+                warn.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#d32f2f;color:#fff;padding:12px 24px;text-align:center;z-index:999999;font-family:sans-serif;font-size:14px;font-weight:bold;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;justify-content:center;align-items:center;gap:12px;';
+                warn.innerHTML = '<span>⚠️ <strong>CORS Protocol Blocked</strong>: Browsers block ES Module loading on local files. Please run a local web server (e.g. VS Code Live Server, python -m http.server, or npm run dev) to test the Worldforge generator.</span>';
+                document.body.appendChild(warn);
+            });
+        }
+    </script>
+</head>
+<body class="dungeon-fullscreen-body">
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="watabou-header dungeon-header">
+            <div class="header-logo">
+                <a href="index.html" class="logo-back-link">
+                    <span class="logo-author">Aetherforge's</span>
+                    <span class="logo-title">Worldforge</span>
+                </a>
+            </div>
+            
+            <div class="level-tabs" id="worldViewTabs">
+                <button class="level-tab active" data-view="surface">
+                    🪐 Global Surface Map
+                </button>
+                <button class="level-tab" data-view="slice">
+                    ☄️ Concentric Slice
+                </button>
+                <button class="level-tab" data-view="profile">
+                    🌋 Geological Profile
+                </button>
+            </div>
+
+            <!-- VIEW OVERLAYS -->
+            <div class="play-mode-controls" id="worldMapControls">
+                <label class="switch-label" title="Show political borders of kingdoms">
+                    <input type="checkbox" id="chkPoliticalView">
+                    <span class="switch-text">Political Borders</span>
+                </label>
+                <label class="switch-label" title="Show cities and capitals">
+                    <input type="checkbox" id="chkShowCities" checked>
+                    <span class="switch-text">Cities</span>
+                </label>
+                <label class="switch-label" title="Show points of interest linking to dungeons">
+                    <input type="checkbox" id="chkShowPOIs" checked>
+                    <span class="switch-text">Dungeon POIs</span>
+                </label>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <main class="app-main">
+            
+            <!-- LEFT COLUMN: PLANET PARAMETERS -->
+            <aside class="sidebar sidebar-controls">
+                <div class="sidebar-section">
+                    <h2>Planetary Parameters</h2>
+                    
+                    <div class="control-group">
+                        <label for="inputWorldSeed">World Seed</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="text" id="inputWorldSeed" class="form-control" placeholder="Random" style="flex:1; font-family: monospace; font-size:12px;">
+                            <button class="btn btn-secondary" id="btnRandomWorldSeed" title="Roll random seed" style="padding: 0 10px; font-size: 16px;">&#x21bb;</button>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="selectPlanetSize">Planet Dimensions</label>
+                        <select id="selectPlanetSize" class="form-control">
+                            <option value="small">Small (32x32 sectors)</option>
+                            <option value="medium" selected>Medium (48x48 sectors)</option>
+                            <option value="large">Large (64x64 sectors)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="selectCoreType">Core Composition</label>
+                        <select id="selectCoreType" class="form-control">
+                            <option value="iron-nickel" selected>Iron-Nickel (Dense Magnetosphere)</option>
+                            <option value="silicate">Chondritic Silicate (Weak Shield)</option>
+                            <option value="gold-molten">Molten Heavy Metals (Amber Core)</option>
+                            <option value="crystal">Volatile Energetic Crystal (Cyan Glow)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="selectTectonics">Tectonic Activity</label>
+                        <select id="selectTectonics" class="form-control">
+                            <option value="active" selected>Active Tectonics (High Mountains & Trenches)</option>
+                            <option value="passive">Stable Plateaus (Rolling Plains & Valley Networks)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="selectAtmosphere">Atmosphere Density</label>
+                        <select id="selectAtmosphere" class="form-control">
+                            <option value="temperate" selected>Temperate (Stratified Layers)</option>
+                            <option value="thin">Thin (Low Pressure, High Exosphere)</option>
+                            <option value="thick">Super-Dense (Thick Troposphere, Acid Haze)</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="selectClimate">Climate Mode</label>
+                        <select id="selectClimate" class="form-control">
+                            <option value="balanced" selected>Balanced Temperate</option>
+                            <option value="frozen">Glacial Ice Age (Large Polar Caps)</option>
+                            <option value="desolate">Arid Desert (Widespread Dunes)</option>
+                            <option value="volcanic">Lava Wasteland (High Magma Chambers)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sidebar-actions">
+                    <button class="btn btn-primary btn-large btn-glow" id="btnForgeWorld">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Forge Planet
+                    </button>
+                </div>
+            </aside>
+
+            <!-- CENTER COLUMN: MAP CANVAS VIEWPORT -->
+            <section class="canvas-viewport">
+                <!-- VIEWPORT HUD -->
+                <div class="viewport-hud" style="top: 20px; bottom: auto; left: 20px; z-index: 100;">
+                    <div class="hud-info" style="font-size: 13px; font-weight: bold; background-color: rgba(10,11,14,0.9);">
+                        <span id="txtWorldViewTitle">Surface Map</span>
+                    </div>
+                </div>
+
+                <div class="canvas-container" id="worldCanvasContainer">
+                    <canvas id="worldCanvas" tabindex="1"></canvas>
+                </div>
+                
+                <div class="viewport-hud">
+                    <div class="hud-info">
+                        <span id="txtWorldCoords">Lat: 0.0°, Lon: 0.0°</span>
+                        <span class="hud-divider">|</span>
+                        <span id="txtWorldSector">Hovered Sector: None</span>
+                    </div>
+                    <div class="hud-controls">
+                        <button class="hud-btn" id="btnWorldZoomIn" title="Zoom In">+</button>
+                        <button class="hud-btn" id="btnWorldZoomOut" title="Zoom Out">-</button>
+                        <button class="hud-btn" id="btnWorldZoomReset" title="Reset Camera">1:1</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: DETAILS INSPECTOR -->
+            <aside class="sidebar sidebar-inspector">
+                <div class="inspector-header">
+                    <h2>Planetary Inspector</h2>
+                </div>
+                
+                <div class="inspector-content" id="worldInspectorContent">
+                    <div class="inspector-empty-state">
+                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <p>Hover or click on sectors on the world map, concentric arcs on the slice view, or geological layers on the drill profile to inspect details.</p>
+                    </div>
+                </div>
+            </aside>
+
+        </main>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toastContainer" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;"></div>
+
+    <!-- Web App Logic -->
+    <script type="module" src="js/world.js"></script>
+</body>
+</html>
