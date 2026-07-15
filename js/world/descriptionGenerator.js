@@ -1011,250 +1011,244 @@ export function generatePoiDescription(poiType, seedString, customName) {
 export function generateAdventureHooks(rng, type, category, faction, biome) {
     const hooks = [];
     
-    // Choose characters, objectives, creatures, and complications
-    const char1 = rng.pick(CHARACTERS);                        // RNG Moment 1
-    let char2 = rng.pick(CHARACTERS);                        // RNG Moment 2
-    while (char2.name === char1.name) {
-        char2 = rng.pick(CHARACTERS);
-    }
-    const ship1 = rng.pick(VESSEL_TYPES);                      // RNG Moment 3
-    const ship2 = rng.pick(VESSEL_TYPES);                      // RNG Moment 4
-    const creature = rng.pick(CREATURES);                      // RNG Moment 5
-    const objective = rng.pick(OBJECTIVES);                    // RNG Moment 6
-    const complication = rng.pick(COMPLICATIONS);              // RNG Moment 7
+    const getHook = () => {
+        // Choose characters, objectives, creatures, and complications
+        const char1 = rng.pick(CHARACTERS);                        // RNG Moment 1
+        let char2 = rng.pick(CHARACTERS);                        // RNG Moment 2
+        while (char2.name === char1.name) {
+            char2 = rng.pick(CHARACTERS);
+        }
+        const ship1 = rng.pick(VESSEL_TYPES);                      // RNG Moment 3
+        const ship2 = rng.pick(VESSEL_TYPES);                      // RNG Moment 4
+        const creature = rng.pick(CREATURES);                      // RNG Moment 5
+        const objective = rng.pick(OBJECTIVES);                    // RNG Moment 6
+        const complication = rng.pick(COMPLICATIONS);              // RNG Moment 7
+
+        if (type === 'city') {
+            const cityPool = [
+                `A merchant representative is hiring guards to help ${char1.name} ${objective} outside the walls, ${complication}.`,
+                `Rumors circulate that ${char1.name} has discovered a cache of relics, but ${complication}.`,
+                `You meet ${char1.name} in a smoky tavern, who claims ${char2.name} is seeking mercenaries to ${objective}.`,
+                `${char1.name} is looking for recruits to recover ${char1.possession}, which is guarded by ${creature} nearby.`,
+                `The local magistrate is seeking volunteers to investigate why ${char1.name} fled the city to ${objective}, ${complication}.`
+            ];
+            return rng.pick(cityPool);
+        } else if (POI_DICTIONARIES[type]) {
+            const dict = POI_DICTIONARIES[type];
+            const structures = dict.nouns;
+            const struct = rng.pick(structures);
+            
+            const hooksPool = [
+                `${char1.name} offers gold to anyone who will enter the ${struct} and help them ${objective}, ${complication}.`,
+                `${char1.name} warns that the ${struct} has been overrun by ${creature}, who are trying to ${objective}.`,
+                `Two rival groups, one led by ${char1.name} armed with ${char1.possession} and another by ${char2.name}, are in a race to ${objective} inside the ${struct}.`,
+                `A dying messenger was found by ${char1.name}, revealing that ${creature} is guarding the entrance to the ${struct}, ${complication}.`,
+                `Strange magical anomalies have started spreading from this ${struct}, which ${char1.name} claims is a barrier created by ${creature}.`
+            ];
+            return rng.pick(hooksPool);
+        } else {
+            // Biome/Wilderness hook
+            const hooksPool = {
+                aquatic: [
+                    `An abandoned ${ship1} was spotted drifting near the coast; ${char1.name} claims it was attacked by ${creature}.`,
+                    `A legendary pearl is said to rest nearby; ${char1.name} wants to use ${char1.possession} to retrieve it, ${complication}.`,
+                    `Deep-sea thermal vents have begun boiling, and ${char1.name} believes ${creature} is nesting inside them.`,
+                    `Local fishermen report their nets are being slashed; ${char1.name} is looking for adventurers to hunt down ${creature}.`,
+                    `A cargo ship carrying gold foundered on a reef; ${char1.name} is organizing a dive to retrieve it, ${complication}.`,
+                    `Bizarre, glowing lights have begun rising from deep ocean trenches, which ${char1.name} claims is an omen of ${creature}.`,
+                    `An underwater gate has begun pulsing; ${char1.name} believes it leads to a rift guarded by ${creature}.`,
+                    `An underwater volcano has active vents, and ${char1.name} thinks it's caused by ${creature}.`,
+                    `A glowing beacon was spotted deep underwater; ${char1.name} wants to use ${char1.possession} to reach it, ${complication}.`,
+                    `A massive whirlpool formed near the shipping lanes; ${char1.name} claims it is the nest of ${creature}.`,
+                    `A fleet of ${ship1} vessels has blockaded the harbor, and ${char1.name} wants to help bypass them to ${objective}.`,
+                    `A mysterious island rose from the sea; ${char1.name} is looking for a crew to explore it before it sinks, ${complication}.`,
+                    `The wreckage of a legendary ${ship1} was found; ${char1.name} wants to retrieve a chest from it, ${complication}.`,
+                    `Bizarre whale songs are driving sailors mad; ${char1.name} believes they are caused by ${creature}.`,
+                    `A smuggling crew led by ${char1.name} claims their underwater cave was stolen by ${creature}.`,
+                    `A tidal wave washed up a strange artifact; ${char1.name} wants to deliver it to a buyer to ${objective}, ${complication}.`,
+                    `A pod of friendly dolphins is guiding boats to a reef where ${char1.name} believes a treasure lies, ${complication}.`,
+                    `An ancient lighthouse has begun flashing red; ${char1.name} fears it is a signal to summon ${creature}.`,
+                    `A legendary navigator, ${char1.name}, claims to know the way to a sunken city but requires help to fight off ${creature}.`,
+                    `A ghost fleet of ${ship1} and ${ship2} has been seen sailing in circles; ${char1.name} wants to investigate.`,
+                    `Sea-elves led by ${char1.name} are recruiting mercenaries to protect their reef villages from ${creature}.`,
+                    `A merchant offering massive gold claims his cargo was plundered by ${char1.name} sailing a ${ship1}, ${complication}.`,
+                    `A cursed anchor has locked a royal ${ship1} in place; ${char1.name} needs help to break the curse before ${creature} arrives.`,
+                    `An underwater ley-line fissure is superheating the bay; ${char1.name} is hiring divers to seal it, ${complication}.`,
+                    `A rare, glowing coral reef is being destroyed; ${char1.name} blames the nesting behavior of ${creature}.`,
+                    `A floating tavern built on three hulls is looking for guards; ${char1.name} expects an attack by ${creature} tonight.`,
+                    `A local map collector is hiring guards to help ${char1.name} chart a deep ocean trench, ${complication}.`
+                ],
+                arid: [
+                    `A sudden sandstorm uncovered the tip of an obsidian obelisk; ${char1.name} wants to retrieve it to ${objective}, ${complication}.`,
+                    `A trade caravan led by ${char1.name} vanished; ${char2.name} suspects they were ambushed by ${creature}.`,
+                    `Nomads led by ${char1.name} warn that ${creature} is stalking travelers near the water holes.`,
+                    `An ancient sandstone temple has opened; ${char1.name} claims it is the only place to ${objective}, ${complication}.`,
+                    `Outlaws have set up camp in the mesas; ${char1.name} is offering their weapon if you help defeat them, ${complication}.`,
+                    `The central spring of the local oasis has turned pitch black; ${char1.name} believes ${creature} has poisoned it.`,
+                    `A desert nomad, ${char1.name}, discovered a hidden entrance to a tomb dune under the dunes, ${complication}.`,
+                    `The guardian of a desert oasis, ${char1.name}, is looking for heroes to help them hunt down ${creature}.`,
+                    `A massive glass dome was uncovered by the wind; ${char1.name} wants to go inside to ${objective}, ${complication}.`,
+                    `A sand-merchant claims his caravan was swallowed by a sinkhole, and ${char1.name} wants to salvage the cargo.`,
+                    `A strange cactus forest has begun growing rapidly; ${char1.name} believes it is controlled by ${creature}.`,
+                    `The desert winds have begun whispering names; ${char1.name} claims they belong to the victims of ${creature}.`,
+                    `An outlaw band led by ${char1.name} has stolen the town's water supply, and ${char2.name} wants help to recover it.`,
+                    `A legendary desert guide, ${char1.name}, was captured by bandits who want to force them to ${objective}.`,
+                    `A mysterious mirror-like structure in the dunes reflects a different world; ${char1.name} wants to investigate, ${complication}.`,
+                    `A giant sand-worm nest has blocked the main trade road; ${char1.name} is hiring hunters to clear it, ${complication}.`,
+                    `A local scholar, ${char1.name}, claims an ancient sandstone tablet holds the coordinates to a lost city.`,
+                    `A sulfurous steam vent has opened near a village; ${char1.name} believes it was dug by ${creature} underground.`,
+                    `A pack of ravenous desert predators is hunting cattle; ${char1.name} is offering a bounty for their pelts.`,
+                    `A glowing meteor crashed in the deep desert; ${char1.name} wants to retrieve it using ${char1.possession}, ${complication}.`,
+                    `A ruined canyon fort is being used as a base by ${creature}; ${char1.name} wants to clear it to ${objective}.`,
+                    `A merchant caravan led by ${char1.name} is looking for guards to protect them from dune-raiders.`,
+                    `A strange blue fire has begun burning in the canyons; ${char1.name} believes it is a ritual to summon ${creature}.`,
+                    `A lost traveler, ${char1.name}, claims to have survived a night inside a temple ruled by ${creature}.`,
+                    `A massive sandstone bridge has collapsed; ${char1.name} suspects it was sabotaged by agents of ${creature}.`,
+                    `A local mining camp has been abandoned; ${char1.name} wants to go back to retrieve their tools, ${complication}.`
+                ],
+                mountain: [
+                    `A group of miners led by ${char1.name} broke through into a cavern filled with ${creature}.`,
+                    `Howling winds passing through the ridges carry a melody; ${char1.name} believes it is the voice of ${creature}.`,
+                    `A local watchpost was crushed by a rockslide; ${char1.name} claims it was triggered by ${creature}.`,
+                    `A crystalline mineral vein has begun growing, which ${char1.name} wants to harvest to ${objective}, ${complication}.`,
+                    `High peak hermits report that stars are shifting; ${char1.name} believes ${creature} is being summoned.`,
+                    `A group of mountain climbers led by ${char1.name} has gone missing near the summit; ${char2.name} is organizing a rescue.`,
+                    `An ancient stone fortress on the peaks is glowing at night; ${char1.name} wants to investigate, ${complication}.`,
+                    `A massive avalanche has blocked the main pass; ${char1.name} suspects it was caused by ${creature}.`,
+                    `A legendary forge built inside a volcano is rumored to still work; ${char1.name} wants to use it to ${objective}.`,
+                    `A flock of flying predators has nested near the trade trails; ${char1.name} is looking for archers to clear them.`,
+                    `A quiet mountain village has been cut off by heavy storms; ${char1.name} is looking for a team to deliver supplies.`,
+                    `A strange crystal structure has grown on the highest peak; ${char1.name} believes it is a beacon for ${creature}.`,
+                    `A group of archaeologists led by ${char1.name} discovered a cavern system filled with ancient art, ${complication}.`,
+                    `A mountain hermit, ${char1.name}, warns that the spirits of the peak are angry because of ${creature}.`,
+                    `A ruined watchtower is being used as a nest by ${creature}; ${char1.name} wants to clear it, ${complication}.`,
+                    `A high-altitude sky-ship dock is looking for guards; ${char1.name} fears an attack by flying monsters.`,
+                    `A deep-shaft mine has breached a nest of ${creature}; ${char1.name} is hiring mercenaries to defend the miners.`,
+                    `A sacred mountain temple was plundered; ${char1.name} wants to recover the relics from ${creature}, ${complication}.`,
+                    `A mysterious traveler, ${char1.name}, is looking for a guide to help them reach a hidden valley.`,
+                    `A pack of wild gryphons is attacking mountain goats; ${char1.name} wants to capture a hatchling, ${complication}.`,
+                    `A local mapmaker is hiring surveyors to map a high ridge; ${char1.name} claims the area is haunted.`,
+                    `A sulfurous hot spring has begun boiling; ${char1.name} suspects a volcanic eruption is imminent.`,
+                    `A group of pilgrims led by ${char1.name} was trapped in a high-pass monastery by ${creature}.`,
+                    `A legendary sword was spotted embedded in a glacier; ${char1.name} wants to retrieve it using ${char1.possession}.`,
+                    `A rival adventuring party led by ${char1.name} is heading up the mountain to ${objective}, ${complication}.`
+                ],
+                woodland: [
+                    `The druids of the forest circle have gone missing; ${char1.name} warns they were taken by ${creature}.`,
+                    `A massive, hollow redwood tree is rumored to hide a pathway; ${char1.name} wants to map it to ${objective}, ${complication}.`,
+                    `A thick, greenish mist is creeping out of the fens, which ${char1.name} claims was released by ${creature}.`,
+                    `Tangled briars have grown overnight, enclosing the territory of ${creature}, ${complication}.`,
+                    `Outlaws led by ${char1.name} have fortified the woods; they are seeking recruits to help them fight off ${creature}.`,
+                    `A local hunter, ${char1.name}, found a cabin filled with strange, glowing cocoons created by ${creature}.`,
+                    `A forest ranger, ${char1.name}, reports that tree roots are wrapping around roads, and suspects ${creature} is behind it.`,
+                    `A hidden glade is said to contain a fountain of youth; ${char1.name} wants to find it to ${objective}, ${complication}.`,
+                    `A group of loggers led by ${char1.name} was attacked by animated trees, and suspects a druid curse.`,
+                    `A strange, colorful moss is spreading through the woods; ${char1.name} believes it is toxic to animals.`,
+                    `A local child has wandered into the deep forest; ${char1.name} is organizing a search party before nightfall.`,
+                    `A ruined druid shrine is glowing with green light; ${char1.name} wants to investigate, ${complication}.`,
+                    `A pack of mutated wolves is hunting near the forest edge; ${char1.name} is offering a bounty for their pelts.`,
+                    `A legendary archer, ${char1.name}, is looking for a partner to help them hunt down ${creature}.`,
+                    `A massive hollow oak tree contains a spiral staircase leading down; ${char1.name} wants to explore it, ${complication}.`,
+                    `A circle of standing stones is pulsing with magic; ${char1.name} fears it is being used to summon ${creature}.`,
+                    `A group of wood-elves led by ${char1.name} is protesting the logging operations, claiming it disturbs ${creature}.`,
+                    `A mysterious herbalist, ${char1.name}, requires rare nightshade mushrooms that only grow in the deep woods.`,
+                    `A local merchant caravan was ambushed in the forest; ${char1.name} suspects it was the work of outlaws.`,
+                    `A strange, sweet fog is putting forest animals to sleep; ${char1.name} wants to find the source to ${objective}.`,
+                    `A sacred grove is being cleared by a greedy builder; ${char1.name} wants to sabotage their equipment, ${complication}.`,
+                    `A nest of giant spiders has blocked the main road; ${char1.name} is hiring guards to clear it, ${complication}.`,
+                    `A forest guide, ${char1.name}, claims to have seen a white stag that leads to a hidden treasure.`,
+                    `A ruined hunter's lodge is occupied by a group of bandits; ${char1.name} wants to reclaim it.`,
+                    `A sudden forest fire has trapped a research expedition; ${char1.name} is looking for volunteers to rescue them.`
+                ],
+                cold: [
+                    `A hunter discovered a frozen expedition camp; ${char1.name} believes they were attacked by ${creature}.`,
+                    `Yeti tracks have been spotted near pastures; ${char1.name} wants to use ${char1.possession} to hunt the beast, ${complication}.`,
+                    `A massive glacier has cracked, revealing a perfectly preserved ${ship1}; ${char1.name} claims it contains a vault.`,
+                    `A frozen mammoth was found in the ice; ${char1.name} wants to recover the crystal frozen inside its tusk.`,
+                    `A local trapper, ${char1.name}, reports that winter wolves are being organized by a giant white beast.`,
+                    `A massive ice wall has cracked, revealing a tunnel; ${char1.name} wants to explore it to ${objective}, ${complication}.`,
+                    `A quiet fishing village on the frozen lake is being attacked by ice-dwellers; ${char1.name} is organizing defense.`,
+                    `A legendary thermal spring in the snow is rumored to heal all wounds; ${char1.name} wants to find it.`,
+                    `A group of frost giant scouts was spotted near the border; ${char1.name} is looking for scouts to track them.`,
+                    `A strange, blue aurora has begun burning at noon; ${char1.name} fears it is a ritual to summon ${creature}.`,
+                    `A frozen monastery contains library vaults; ${char1.name} wants to retrieve a book, ${complication}.`,
+                    `A pack of snow leopards has nested near a mountain pass; ${char1.name} is looking for hunters to clear them.`,
+                    `A ruined ice palace is said to hold the crown of the winter king; ${char1.name} wants to reclaim it.`,
+                    `A local explorer, ${char1.name}, was caught in a sudden blizzard and needs help to recover their gear.`,
+                    `A strange white mist is freezing everything it touches; ${char1.name} suspects it was released by ${creature}.`,
+                    `A group of miners led by ${char1.name} is trapped inside a collapsed coal mine under the glacier.`,
+                    `A legendary ice-skiff was stolen by bandits; ${char1.name} wants to retrieve it to travel across the tundra.`,
+                    `A sacred ice-sculpture has begun weeping blood; ${char1.name} believes it is a warning of ${creature}.`,
+                    `A local guide, ${char1.name}, claims an ancient map shows a warm valley hidden inside the glacier.`,
+                    `A pack of ravenous winter beasts is hunting sled dogs; ${char1.name} is offering a bounty for their pelts.`,
+                    `A merchant caravan carrying warm winter gear was lost in a drift; ${char1.name} wants to salvage it.`,
+                    `A mysterious frozen warrior has begun to thaw; ${char1.name} wants to translate their ancient language.`,
+                    `A rival group of hunters led by ${char1.name} is heading out to claim the bounty on ${creature}, ${complication}.`
+                ],
+                plains: [
+                    `A massive sinkhole opened in the plains; ${char1.name} believes it connects to a dungeon ruled by ${creature}.`,
+                    `Centaur clans led by ${char1.name} are migrating early to escape the hunting grounds of ${creature}.`,
+                    `Local farmers report crops growing in patterns; ${char1.name} claims it is the sigil of ${creature}.`,
+                    `A local farmer, ${char1.name}, reports that crop circles are appearing in the wheat fields, and suspects ${creature}.`,
+                    `A massive herd of bison has stampeded, and ${char1.name} believes they were spooked by ${creature} underground.`,
+                    `A ruined windmill is rumored to hold a secret treasure vault; ${char1.name} wants to explore it, ${complication}.`,
+                    `A group of nomads led by ${char1.name} was attacked by a swarm of giant insects, and needs help to clear them.`,
+                    `A strange, glowing obelisk in the middle of the plains is humming; ${char1.name} wants to investigate, ${complication}.`,
+                    `A local magistrate is hiring guards to protect the harvest caravans from plains-raiders.`,
+                    `A pack of wild horses is being hunted by ${creature}; ${char1.name} wants to save the herd, ${complication}.`,
+                    `A quiet plains village has been abandoned; ${char1.name} wants to find out what happened to the citizens.`,
+                    `A legendary scout, ${char1.name}, is looking for volunteers to map the unchartered grasslands.`,
+                    `A sudden grass-fire is threatening the local farms; ${char1.name} suspects it was started by agents of ${creature}.`,
+                    `A strange blue flower has begun blooming across the plains; ${char1.name} believes it has magical properties.`,
+                    `A group of archaeologists led by ${char1.name} discovered a buried barrow mound, ${complication}.`,
+                    `A giant sinkhole opened in the middle of a trade road; ${char1.name} wants to explore the cave underneath.`,
+                    `A local merchant caravan was plundered by outlaws; ${char1.name} is looking for tracks in the grass.`,
+                    `A strange, sweet fog is rolling across the plains; ${char1.name} fears it is toxic to sheep and horses.`,
+                    `A sacred standing stone was knocked over; ${char1.name} wants to restore it to prevent a curse, ${complication}.`,
+                    `A nest of burrowing monsters has ruined the local fields; ${char1.name} is hiring hunters to clear them.`,
+                    `A local shepherd, ${char1.name}, claims a golden lamb was born, which leads to a hidden treasure.`,
+                    `A ruined watch-tower is occupied by a group of mercenaries; ${char1.name} wants to hire them to fight off ${creature}.`,
+                    `A sudden storm has scattered a caravan's horses; ${char1.name} is looking for volunteers to gather them.`
+                ],
+                magical: [
+                    `Raw mana surges are creating anti-gravity pockets; ${char1.name} warns it is a side effect of ${creature} awakening.`,
+                    `A tear in space-time has opened; ${char1.name} wants to use ${char1.possession} to close it before ${creature} enters.`,
+                    `Glowing crystal structures are rapidly growing, which ${char1.name} claims was planted by ${creature} to ${objective}.`,
+                    `A raw mana storm is raging; ${char1.name} wants to deploy protective anchors to save a nearby village, ${complication}.`,
+                    `A group of wizard apprentices led by ${char1.name} has gone missing after a summoning experiment went wrong.`,
+                    `A levitating island is slowly losing altitude; ${char1.name} wants to find the core crystal to save it.`,
+                    `A strange rift has begun leaking wild magic; ${char1.name} wants to use ${char1.possession} to seal it, ${complication}.`,
+                    `A forest of crystalline trees has begun growing; ${char1.name} believes they are draining the area's ley-lines.`,
+                    `A local scholar, ${char1.name}, claims an ancient sigil holds the key to opening a pocket dimension.`,
+                    `A pack of phase-hounds is hunting magic items; ${char1.name} wants to protect their vault from them.`,
+                    `A mysterious mirror matches your movements but shows a different room; ${char1.name} wants to investigate.`,
+                    `A sacred elemental node was corrupted; ${char1.name} wants to purify it to prevent a mana explosion, ${complication}.`,
+                    `A group of researchers led by ${char1.name} discovered a library of forbidden spells, ${complication}.`,
+                    `A strange blue fire has begun burning in the air; ${char1.name} suspects a planar portal is opening.`,
+                    `A local merchant is selling potions that cause wild magic surges; ${char1.name} wants to close their shop.`,
+                    `A ruined wizard academy is occupied by a group of constructs; ${char1.name} wants to deactivate them.`,
+                    `A magical beacon on top of a floating spire has begun flashing red; ${char1.name} fears it is a summon signal.`,
+                    `A legendary staff was spotted floating inside a gravity rift; ${char1.name} wants to retrieve it.`,
+                    `A local guide, ${char1.name}, claims to know a hidden path that bypasses the magical barrier.`,
+                    `A pack of mana-leeches is draining the local protective wards; ${char1.name} is looking for hunters.`,
+                    `A mysterious traveler, ${char1.name}, claims to be from another plane and needs help to return home.`,
+                    `A sacred spell-tree has begun to wither; ${char1.name} wants to find the source of the rot to ${objective}.`,
+                    `A rival guild led by ${char1.name} is trying to siphon energy from the rift; ${char2.name} wants to stop them.`
+                ]
+            };
+            const pool = hooksPool[category] || hooksPool.plains;
+            return rng.pick(pool);
+        }
+    };
     
-    if (type === 'city') {
-        const cityPool = [
-            `A merchant representative is hiring guards to help ${char1.name} ${objective} outside the walls, ${complication}.`,
-            `Rumors circulate that ${char1.name} has discovered a cache of relics, but ${complication}.`,
-            `You meet ${char1.name} in a smoky tavern, who claims ${char2.name} is seeking mercenaries to ${objective}.`,
-            `${char1.name} is looking for recruits to recover ${char1.possession}, which is guarded by ${creature} nearby.`,
-            `The local magistrate is seeking volunteers to investigate why ${char1.name} fled the city to ${objective}, ${complication}.`
-        ];
-        hooks.push(rng.pick(cityPool));                        // RNG Moment 8
-        let second = rng.pick(cityPool);
-        while (second === hooks[0]) {
-            second = rng.pick(cityPool);
-        }
-        hooks.push(second);
-    } else if (POI_DICTIONARIES[type]) {
-        const dict = POI_DICTIONARIES[type];
-        const structures = dict.nouns;
-        const struct = rng.pick(structures);                  // RNG Moment 8
-        
-        const hooksPool = [
-            `${char1.name} offers gold to anyone who will enter the ${struct} and help them ${objective}, ${complication}.`,
-            `${char1.name} warns that the ${struct} has been overrun by ${creature}, who are trying to ${objective}.`,
-            `Two rival groups, one led by ${char1.name} armed with ${char1.possession} and another by ${char2.name}, are in a race to ${objective} inside the ${struct}.`,
-            `A dying messenger was found by ${char1.name}, revealing that ${creature} is guarding the entrance to the ${struct}, ${complication}.`,
-            `Strange magical anomalies have started spreading from this ${struct}, which ${char1.name} claims is a barrier created by ${creature}.`
-        ];
-        
-        hooks.push(rng.pick(hooksPool));                        // RNG Moment 9
-        let second = rng.pick(hooksPool);
-        while (second === hooks[0]) {
-            second = rng.pick(hooksPool);
-        }
-        hooks.push(second);
-    } else {
-        // Biome/Wilderness hook
-        const hooksPool = {
-            aquatic: [
-                `An abandoned ${ship1} was spotted drifting near the coast; ${char1.name} claims it was attacked by ${creature}.`,
-                `A legendary pearl is said to rest nearby; ${char1.name} wants to use ${char1.possession} to retrieve it, ${complication}.`,
-                `Deep-sea thermal vents have begun boiling, and ${char1.name} believes ${creature} is nesting inside them.`,
-                `Local fishermen report their nets are being slashed; ${char1.name} is looking for adventurers to hunt down ${creature}.`,
-                `A cargo ship carrying gold foundered on a reef; ${char1.name} is organizing a dive to retrieve it, ${complication}.`,
-                `Bizarre, glowing lights have begun rising from deep ocean trenches, which ${char1.name} claims is an omen of ${creature}.`,
-                `An underwater gate has begun pulsing; ${char1.name} believes it leads to a rift guarded by ${creature}.`,
-                `An underwater volcano has active vents, and ${char1.name} thinks it's caused by ${creature}.`,
-                `A glowing beacon was spotted deep underwater; ${char1.name} wants to use ${char1.possession} to reach it, ${complication}.`,
-                `A massive whirlpool formed near the shipping lanes; ${char1.name} claims it is the nest of ${creature}.`,
-                `A fleet of ${ship1} vessels has blockaded the harbor, and ${char1.name} wants to help bypass them to ${objective}.`,
-                `A mysterious island rose from the sea; ${char1.name} is looking for a crew to explore it before it sinks, ${complication}.`,
-                `The wreckage of a legendary ${ship1} was found; ${char1.name} wants to retrieve a chest from it, ${complication}.`,
-                `Bizarre whale songs are driving sailors mad; ${char1.name} believes they are caused by ${creature}.`,
-                `A smuggling crew led by ${char1.name} claims their underwater cave was stolen by ${creature}.`,
-                `A tidal wave washed up a strange artifact; ${char1.name} wants to deliver it to a buyer to ${objective}, ${complication}.`,
-                `A pod of friendly dolphins is guiding boats to a reef where ${char1.name} believes a treasure lies, ${complication}.`,
-                `An ancient lighthouse has begun flashing red; ${char1.name} fears it is a signal to summon ${creature}.`,
-                `A legendary navigator, ${char1.name}, claims to know the way to a sunken city but requires help to fight off ${creature}.`,
-                `A ghost fleet of ${ship1} and ${ship2} has been seen sailing in circles; ${char1.name} wants to investigate.`,
-                `Sea-elves led by ${char1.name} are recruiting mercenaries to protect their reef villages from ${creature}.`,
-                `A merchant offering massive gold claims his cargo was plundered by ${char1.name} sailing a ${ship1}, ${complication}.`,
-                `A cursed anchor has locked a royal ${ship1} in place; ${char1.name} needs help to break the curse before ${creature} arrives.`,
-                `An underwater ley-line fissure is superheating the bay; ${char1.name} is hiring divers to seal it, ${complication}.`,
-                `A rare, glowing coral reef is being destroyed; ${char1.name} blames the nesting behavior of ${creature}.`,
-                `A floating tavern built on three hulls is looking for guards; ${char1.name} expects an attack by ${creature} tonight.`,
-                `A local map collector is hiring guards to help ${char1.name} chart a deep ocean trench, ${complication}.`
-            ],
-            arid: [
-                `A sudden sandstorm uncovered the tip of an obsidian obelisk; ${char1.name} wants to retrieve it to ${objective}, ${complication}.`,
-                `A trade caravan led by ${char1.name} vanished; ${char2.name} suspects they were ambushed by ${creature}.`,
-                `Nomads led by ${char1.name} warn that ${creature} is stalking travelers near the water holes.`,
-                `An ancient sandstone temple has opened; ${char1.name} claims it is the only place to ${objective}, ${complication}.`,
-                `Outlaws have set up camp in the mesas; ${char1.name} is offering their weapon if you help defeat them, ${complication}.`,
-                `The central spring of the local oasis has turned pitch black; ${char1.name} believes ${creature} has poisoned it.`,
-                `A desert nomad, ${char1.name}, discovered a hidden entrance to a tomb beneath the dunes, ${complication}.`,
-                `The guardian of a desert oasis, ${char1.name}, is looking for heroes to help them hunt down ${creature}.`,
-                `A massive glass dome was uncovered by the wind; ${char1.name} wants to go inside to ${objective}, ${complication}.`,
-                `A sand-merchant claims his caravan was swallowed by a sinkhole, and ${char1.name} wants to salvage the cargo.`,
-                `A strange cactus forest has begun growing rapidly; ${char1.name} believes it is controlled by ${creature}.`,
-                `The desert winds have begun whispering names; ${char1.name} claims they belong to the victims of ${creature}.`,
-                `An outlaw band led by ${char1.name} has stolen the town's water supply, and ${char2.name} wants help to recover it.`,
-                `A legendary desert guide, ${char1.name}, was captured by bandits who want to force them to ${objective}.`,
-                `A mysterious mirror-like structure in the dunes reflects a different world; ${char1.name} wants to investigate, ${complication}.`,
-                `A giant sand-worm nest has blocked the main trade road; ${char1.name} is hiring hunters to clear it, ${complication}.`,
-                `A local scholar, ${char1.name}, claims an ancient sandstone tablet holds the coordinates to a lost city.`,
-                `A sulfurous steam vent has opened near a village; ${char1.name} believes it was dug by ${creature} underground.`,
-                `A pack of ravenous desert predators is hunting cattle; ${char1.name} is offering a bounty for their pelts.`,
-                `A glowing meteor crashed in the deep desert; ${char1.name} wants to retrieve it using ${char1.possession}, ${complication}.`,
-                `A ruined canyon fort is being used as a base by ${creature}; ${char1.name} wants to clear it to ${objective}.`,
-                `A merchant caravan led by ${char1.name} is looking for guards to protect them from dune-raiders.`,
-                `A strange blue fire has begun burning in the canyons; ${char1.name} believes it is a ritual to summon ${creature}.`,
-                `A lost traveler, ${char1.name}, claims to have survived a night inside a temple ruled by ${creature}.`,
-                `A massive sandstone bridge has collapsed; ${char1.name} suspects it was sabotaged by agents of ${creature}.`,
-                `A local mining camp has been abandoned; ${char1.name} wants to go back to retrieve their tools, ${complication}.`
-            ],
-            mountain: [
-                `A group of miners led by ${char1.name} broke through into a cavern filled with ${creature}.`,
-                `Howling winds passing through the ridges carry a melody; ${char1.name} believes it is the voice of ${creature}.`,
-                `A local watchpost was crushed by a rockslide; ${char1.name} claims it was triggered by ${creature}.`,
-                `A crystalline mineral vein has begun growing, which ${char1.name} wants to harvest to ${objective}, ${complication}.`,
-                `High peak hermits report that stars are shifting; ${char1.name} believes ${creature} is being summoned.`,
-                `A group of mountain climbers led by ${char1.name} has gone missing near the summit; ${char2.name} is organizing a rescue.`,
-                `An ancient stone fortress on the peaks is glowing at night; ${char1.name} wants to investigate, ${complication}.`,
-                `A massive avalanche has blocked the main pass; ${char1.name} suspects it was caused by ${creature}.`,
-                `A legendary forge built inside a volcano is rumored to still work; ${char1.name} wants to use it to ${objective}.`,
-                `A flock of flying predators has nested near the trade trails; ${char1.name} is looking for archers to clear them.`,
-                `A quiet mountain village has been cut off by heavy storms; ${char1.name} is looking for a team to deliver supplies.`,
-                `A strange crystal structure has grown on the highest peak; ${char1.name} believes it is a beacon for ${creature}.`,
-                `A group of archaeologists led by ${char1.name} discovered a cavern system filled with ancient art, ${complication}.`,
-                `A mountain hermit, ${char1.name}, warns that the spirits of the peak are angry because of ${creature}.`,
-                `A ruined watchtower is being used as a nest by ${creature}; ${char1.name} wants to clear it, ${complication}.`,
-                `A high-altitude sky-ship dock is looking for guards; ${char1.name} fears an attack by flying monsters.`,
-                `A deep-shaft mine has breached a nest of ${creature}; ${char1.name} is hiring mercenaries to defend the miners.`,
-                `A sacred mountain temple was plundered; ${char1.name} wants to recover the relics from ${creature}, ${complication}.`,
-                `A mysterious traveler, ${char1.name}, is looking for a guide to help them reach a hidden valley.`,
-                `A pack of wild gryphons is attacking mountain goats; ${char1.name} wants to capture a hatchling, ${complication}.`,
-                `A local mapmaker is hiring surveyors to map a high ridge; ${char1.name} claims the area is haunted.`,
-                `A sulfurous hot spring has begun boiling; ${char1.name} suspects a volcanic eruption is imminent.`,
-                `A group of pilgrims led by ${char1.name} was trapped in a high-pass monastery by ${creature}.`,
-                `A legendary sword was spotted embedded in a glacier; ${char1.name} wants to retrieve it using ${char1.possession}.`,
-                `A rival adventuring party led by ${char1.name} is heading up the mountain to ${objective}, ${complication}.`
-            ],
-            woodland: [
-                `The druids of the forest circle have gone missing; ${char1.name} warns they were taken by ${creature}.`,
-                `A massive, hollow redwood tree is rumored to hide a pathway; ${char1.name} wants to map it to ${objective}, ${complication}.`,
-                `A thick, greenish mist is creeping out of the fens, which ${char1.name} claims was released by ${creature}.`,
-                `Tangled briars have grown overnight, enclosing the territory of ${creature}, ${complication}.`,
-                `Outlaws led by ${char1.name} have fortified the woods; they are seeking recruits to help them fight off ${creature}.`,
-                `A local hunter, ${char1.name}, found a cabin filled with strange, glowing cocoons created by ${creature}.`,
-                `A forest ranger, ${char1.name}, reports that tree roots are wrapping around roads, and suspects ${creature} is behind it.`,
-                `A hidden glade is said to contain a fountain of youth; ${char1.name} wants to find it to ${objective}, ${complication}.`,
-                `A group of loggers led by ${char1.name} was attacked by animated trees, and suspects a druid curse.`,
-                `A strange, colorful moss is spreading through the woods; ${char1.name} believes it is toxic to animals.`,
-                `A local child has wandered into the deep forest; ${char1.name} is organizing a search party before nightfall.`,
-                `A ruined druid shrine is glowing with green light; ${char1.name} wants to investigate, ${complication}.`,
-                `A pack of mutated wolves is hunting near the forest edge; ${char1.name} is offering a bounty for their pelts.`,
-                `A legendary archer, ${char1.name}, is looking for a partner to help them hunt down ${creature}.`,
-                `A massive hollow oak tree contains a spiral staircase leading down; ${char1.name} wants to explore it, ${complication}.`,
-                `A circle of standing stones is pulsing with magic; ${char1.name} fears it is being used to summon ${creature}.`,
-                `A group of wood-elves led by ${char1.name} is protesting the logging operations, claiming it disturbs ${creature}.`,
-                `A mysterious herbalist, ${char1.name}, requires rare nightshade mushrooms that only grow in the deep woods.`,
-                `A local merchant caravan was ambushed in the forest; ${char1.name} suspects it was the work of outlaws.`,
-                `A strange, sweet fog is putting forest animals to sleep; ${char1.name} wants to find the source to ${objective}.`,
-                `A sacred grove is being cleared by a greedy builder; ${char1.name} wants to sabotage their equipment, ${complication}.`,
-                `A nest of giant spiders has blocked the main road; ${char1.name} is hiring guards to clear it, ${complication}.`,
-                `A forest guide, ${char1.name}, claims to have seen a white stag that leads to a hidden treasure.`,
-                `A ruined hunter's lodge is occupied by a group of bandits; ${char1.name} wants to reclaim it.`,
-                `A sudden forest fire has trapped a research expedition; ${char1.name} is looking for volunteers to rescue them.`
-            ],
-            cold: [
-                `A hunter discovered a frozen expedition camp; ${char1.name} believes they were attacked by ${creature}.`,
-                `Yeti tracks have been spotted near pastures; ${char1.name} wants to use ${char1.possession} to hunt the beast, ${complication}.`,
-                `A massive glacier has cracked, revealing a perfectly preserved ${ship1}; ${char1.name} claims it contains a vault.`,
-                `A frozen mammoth was found in the ice; ${char1.name} wants to recover the crystal frozen inside its tusk.`,
-                `A local trapper, ${char1.name}, reports that winter wolves are being organized by a giant white beast.`,
-                `A massive ice wall has cracked, revealing a tunnel; ${char1.name} wants to explore it to ${objective}, ${complication}.`,
-                `A quiet fishing village on the frozen lake is being attacked by ice-dwellers; ${char1.name} is organizing defense.`,
-                `A legendary thermal spring in the snow is rumored to heal all wounds; ${char1.name} wants to find it.`,
-                `A group of frost giant scouts was spotted near the border; ${char1.name} is looking for scouts to track them.`,
-                `A strange, blue aurora has begun burning at noon; ${char1.name} fears it is a ritual to summon ${creature}.`,
-                `A frozen monastery contains library vaults; ${char1.name} wants to retrieve a book, ${complication}.`,
-                `A pack of snow leopards has nested near a mountain pass; ${char1.name} is looking for hunters to clear them.`,
-                `A ruined ice palace is said to hold the crown of the winter king; ${char1.name} wants to reclaim it.`,
-                `A local explorer, ${char1.name}, was caught in a sudden blizzard and needs help to recover their gear.`,
-                `A strange white mist is freezing everything it touches; ${char1.name} suspects it was released by ${creature}.`,
-                `A group of miners led by ${char1.name} is trapped inside a collapsed coal mine under the glacier.`,
-                `A legendary ice-skiff was stolen by bandits; ${char1.name} wants to retrieve it to travel across the tundra.`,
-                `A sacred ice-sculpture has begun weeping blood; ${char1.name} believes it is a warning of ${creature}.`,
-                `A local guide, ${char1.name}, claims an ancient map shows a warm valley hidden inside the glacier.`,
-                `A pack of ravenous winter beasts is hunting sled dogs; ${char1.name} is offering a bounty for their pelts.`,
-                `A merchant caravan carrying warm winter gear was lost in a drift; ${char1.name} wants to salvage it.`,
-                `A mysterious frozen warrior has begun to thaw; ${char1.name} wants to translate their ancient language.`,
-                `A rival group of hunters led by ${char1.name} is heading out to claim the bounty on ${creature}, ${complication}.`
-            ],
-            plains: [
-                `A massive sinkhole opened in the plains; ${char1.name} believes it connects to a dungeon ruled by ${creature}.`,
-                `Centaur clans led by ${char1.name} are migrating early to escape the hunting grounds of ${creature}.`,
-                `Local farmers report crops growing in patterns; ${char1.name} claims it is the sigil of ${creature}.`,
-                `A local farmer, ${char1.name}, reports that crop circles are appearing in the wheat fields, and suspects ${creature}.`,
-                `A massive herd of bison has stampeded, and ${char1.name} believes they were spooked by ${creature} underground.`,
-                `A ruined windmill is rumored to hold a secret treasure vault; ${char1.name} wants to explore it, ${complication}.`,
-                `A group of nomads led by ${char1.name} was attacked by a swarm of giant insects, and needs help to clear them.`,
-                `A strange, glowing obelisk in the middle of the plains is humming; ${char1.name} wants to investigate, ${complication}.`,
-                `A local magistrate is hiring guards to protect the harvest caravans from plains-raiders.`,
-                `A pack of wild horses is being hunted by ${creature}; ${char1.name} wants to save the herd, ${complication}.`,
-                `A quiet plains village has been abandoned; ${char1.name} wants to find out what happened to the citizens.`,
-                `A legendary scout, ${char1.name}, is looking for volunteers to map the unchartered grasslands.`,
-                `A sudden grass-fire is threatening the local farms; ${char1.name} suspects it was started by agents of ${creature}.`,
-                `A strange blue flower has begun blooming across the plains; ${char1.name} believes it has magical properties.`,
-                `A group of archaeologists led by ${char1.name} discovered a buried barrow mound, ${complication}.`,
-                `A giant sinkhole opened in the middle of a trade road; ${char1.name} wants to explore the cave underneath.`,
-                `A local merchant caravan was plundered by outlaws; ${char1.name} is looking for tracks in the grass.` ,
-                `A strange, sweet fog is rolling across the plains; ${char1.name} fears it is toxic to sheep and horses.`,
-                `A sacred standing stone was knocked over; ${char1.name} wants to restore it to prevent a curse, ${complication}.`,
-                `A nest of burrowing monsters has ruined the local fields; ${char1.name} is hiring hunters to clear them.`,
-                `A local shepherd, ${char1.name}, claims a golden lamb was born, which leads to a hidden treasure.`,
-                `A ruined watch-tower is occupied by a group of mercenaries; ${char1.name} wants to hire them to fight off ${creature}.`,
-                `A sudden storm has scattered a caravan's horses; ${char1.name} is looking for volunteers to gather them.`
-            ],
-            magical: [
-                `Raw mana surges are creating anti-gravity pockets; ${char1.name} warns it is a side effect of ${creature} awakening.`,
-                `A tear in space-time has opened; ${char1.name} wants to use ${char1.possession} to close it before ${creature} enters.`,
-                `Glowing crystal structures are rapidly growing, which ${char1.name} claims was planted by ${creature} to ${objective}.`,
-                `A raw mana storm is raging; ${char1.name} wants to deploy protective anchors to save a nearby village, ${complication}.`,
-                `A group of wizard apprentices led by ${char1.name} has gone missing after a summoning experiment went wrong.`,
-                `A levitating island is slowly losing altitude; ${char1.name} wants to find the core crystal to save it.`,
-                `A strange rift has begun leaking wild magic; ${char1.name} wants to use ${char1.possession} to seal it, ${complication}.`,
-                `A forest of crystalline trees has begun growing; ${char1.name} believes they are draining the area's ley-lines.`,
-                `A local scholar, ${char1.name}, claims an ancient sigil holds the key to opening a pocket dimension.`,
-                `A pack of phase-hounds is hunting magic items; ${char1.name} wants to protect their vault from them.`,
-                `A mysterious mirror matches your movements but shows a different room; ${char1.name} wants to investigate.`,
-                `A sacred elemental node was corrupted; ${char1.name} wants to purify it to prevent a mana explosion, ${complication}.`,
-                `A group of researchers led by ${char1.name} discovered a library of forbidden spells, ${complication}.`,
-                `A strange blue fire has begun burning in the air; ${char1.name} suspects a planar portal is opening.`,
-                `A local merchant is selling potions that cause wild magic surges; ${char1.name} wants to close their shop.`,
-                `A ruined wizard academy is occupied by a group of constructs; ${char1.name} wants to deactivate them.`,
-                `A magical beacon on top of a floating spire has begun flashing red; ${char1.name} fears it is a summon signal.`,
-                `A legendary staff was spotted floating inside a gravity rift; ${char1.name} wants to retrieve it.`,
-                `A local guide, ${char1.name}, claims to know a hidden path that bypasses the magical barrier.`,
-                `A pack of mana-leeches is draining the local protective wards; ${char1.name} is looking for hunters.`,
-                `A mysterious traveler, ${char1.name}, claims to be from another plane and needs help to return home.`,
-                `A sacred spell-tree has begun to wither; ${char1.name} wants to find the source of the rot to ${objective}.`,
-                `A rival guild led by ${char1.name} is trying to siphon energy from the rift; ${char2.name} wants to stop them.`
-            ]
-        };
-        
-        const pool = hooksPool[category] || hooksPool.plains;
-        hooks.push(rng.pick(pool));                            // RNG Moment 8
-        let second = rng.pick(pool);
-        while (second === hooks[0]) {
-            second = rng.pick(pool);
-        }
-        hooks.push(second);
+    hooks.push(getHook());
+    let second = getHook();
+    while (second === hooks[0]) {
+        second = getHook();
     }
+    hooks.push(second);
     
     return hooks;
 }
+
+
