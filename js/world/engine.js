@@ -1,5 +1,6 @@
 import { RNG, GradientNoise2D, NameGen, binaryInsert } from './utils.js';
 import { BIOME_KEYS, BIOMES, POI_TYPES, getProceduralHooks } from './biomes.js';
+import { generatePoiDescription } from './descriptionGenerator.js';
 
 export class WorldEngine {
     constructor(seed, sizeMode, coreType, tectonics, atmosphere, climate, customW = 512, customH = 256, allowMagic = true, landmassType = 'continents') {
@@ -543,14 +544,17 @@ export class WorldEngine {
                 minorFaction = this.nameGen.factionName();
             }
 
+            const poiSeed = `world_${this.seed}_${px}_${py}`;
+            const proceduralDesc = generatePoiDescription(poiType.id, poiSeed, poiName);
+
             const poiObj = {
                 type:  poiType.id,
                 icon:  poiType.icon,
                 label: poiType.name,
                 name:  poiName,
-                desc:  poiType.desc,
+                desc:  proceduralDesc,
                 theme: poiType.theme,
-                seed:  `world_${this.seed}_${px}_${py}`,
+                seed:  poiSeed,
                 minorFaction
             };
 

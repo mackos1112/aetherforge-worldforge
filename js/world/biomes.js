@@ -1,4 +1,5 @@
 import { RNG } from './utils.js';
+import { generateSectorDescription, generateCityDescription, generateAdventureHooks } from './descriptionGenerator.js';
 
 export const BIOME_KEYS = [
     'Deep Ocean', 'Ocean', 'Shallow Sea', 'Coral Reef', 'Kelp Forest',
@@ -78,98 +79,6 @@ export const POI_TYPES = [
     { id:'astral_rift',  icon:'🌌', name:'Astral Rift',      desc:'A tear in space-time glowing with cosmic stardust. Strange creatures occasionally slip through.',              theme:'arcane',  biomes:['Astral Rift','Mana Wastes'] },
 ];
 
-// ── Terrain-Relatable Hook Library ───────────────────────────────────────────
-const AQUATIC_HOOKS = [
-    "A ghost ship was spotted sailing under full sail with no crew visible on deck.",
-    "A legendary pearl of giant size is said to rest in the maw of a giant clam at the bottom of the reef.",
-    "Deep-sea thermal vents have begun boiling the surrounding waters, driving aggressive marine beasts shoreward.",
-    "Local fishermen report their nets are being slashed from below by organized, weapon-wielding creatures.",
-    "A cargo ship carrying royal gold foundered on a reef. The salvage rights are being sold cheaply.",
-    "Bizarre, glowing lights have begun rising from the deep ocean trenches at midnight.",
-    "An underwater gate containing glyphs of the deep sea has begun pulsing with cyan energy.",
-    "Brackish currents carry warning notes inside sealed bottles, written by a drowned captain.",
-    "Merfolk are offering a wealth of coral gems to land adventurers who can rid their reef of a nesting hydra.",
-    "An ancient tidal wave monument has cracked, and local sea levels are beginning to rise abnormally."
-];
-
-const ARID_HOOKS = [
-    "A sudden sandstorm uncovered the tip of an obsidian obelisk that has been buried for ages.",
-    "A wealthy merchant's trade caravan vanished completely between two oases, leaving only footprints.",
-    "Nomads warn of a shifting mirage that mimics a traveler's deepest desires to lure them into the deep desert.",
-    "An ancient sandstone temple has opened, but it is guarded by mechanical soldiers powered by sun-gems.",
-    "Outlaws are using the rugged mesas and canyons to stage raids on travelers before retreating to hidden caves.",
-    "The central spring of the local oasis has turned pitch black and tastes of ash and sulfur.",
-    "A skeleton wearing royal armor was found clutching a map to the legendary Lost City of Brass.",
-    "Giants are reported to be rolling huge boulders down canyon passes to ambush treasure delvers.",
-    "Nomads speak of the Dust Lord, an elemental spirit demanding tributes of gold to keep sandstorms calm.",
-    "Vast deposits of fire-clay have been discovered in the badlands, drawing corporate miners and mercenaries."
-];
-
-const MOUNTAIN_HOOKS = [
-    "A group of dwarf miners broke through into a volcanic cavern filled with sleeping drakes.",
-    "Howling winds passing through the mountain ridges are carrying a melody that puts travelers to sleep.",
-    "A local watchpost was crushed by a massive rockslide, and something large is heard digging in the rubble.",
-    "A crystalline mineral vein has begun growing out of the stone face, humming with static electricity.",
-    "High peak hermits report that the constellations are shifting only when viewed from the highest summit.",
-    "Slumbering lava tubes have begun venting toxic sulfur gas, poisoning the alpine valleys below.",
-    "A ruined stone fortress perched on a sheer cliffside is rumored to contain a working sky-ship dock.",
-    "Frost giants have established a tribute checkpoint at the main mountain pass, blocking all trade.",
-    "A griffin nest holds a stolen royal signet ring, and the king is offering a knighthood for its recovery.",
-    "Ancient tectonic shrines are shifting, causing localized earthquakes and opening deep fissures in the bedrock."
-];
-
-const WOODLAND_HOOKS = [
-    "The druids of the ancient forest circle have gone missing, leaving behind half-completed warding circles.",
-    "A massive, hollow redwood tree is rumored to hide the entrance to a forgotten subterranean library.",
-    "A thick, greenish mist is creeping out of the fens, causing local wildlife to grow aggressive.",
-    "Tangled briars have grown overnight, completely blocking the logging roads and cutting off the village.",
-    "Outlaws have established a hidden treehouse village, using bows and traps to keep guards out.",
-    "Bizarre blue mushrooms have sprouted, glowing softly and releasing spores that cause vivid hallucinations.",
-    "A dryad is pleading with travelers to stop a corrupting blight eating away at the forest's heart-tree.",
-    "Deepwood rangers report discovering giant cocoons hanging from the canopy of the pine valley.",
-    "The scent of ozone and burning wood fills the air as local trees appear to bleed glowing golden sap.",
-    "An ancient burial mound in the forest has been cracked open, and spectral riders are patrolling the paths."
-];
-
-const COLD_HOOKS = [
-    "A hunter discovered a frozen expedition camp where the explorers were turned into solid ice statues.",
-    "Yeti tracks have been spotted near the alpine sheep pastures, larger than any seen before.",
-    "A massive glacier has cracked, revealing a perfectly preserved ancient warship embedded in the ice.",
-    " Freezing blizzards have begun carrying whispers that call out the names of those lost in the snow.",
-    "Ice spires that glow with a cold blue light are slowly rising from the tundra, draining warmth.",
-    "A group of researchers went missing while studying anti-magic ice crystals in the polar caps.",
-    "A frozen cave contains a warm spring that has kept a tiny, tropical valley alive amidst the tundra.",
-    "A frost wolf pack led by a giant multi-tailed beast is hunting along the borders of the civilized lands.",
-    "Fading runes on a frozen monolith warn of a trapped elemental entity that weakens as the ice melts.",
-    "An ancient frozen barrow mound has begun thawing, releasing spirits of long-forgotten northern kings."
-];
-
-const PLAINS_HOOKS = [
-    "A massive sinkhole opened in the middle of the grassland, revealing brick archways.",
-    "Centaur clans are migrating early, claiming they are fleeing a shadow creeping from the valleys.",
-    "Local farmers report their crops are growing in bizarre, swirling geometric patterns overnight.",
-    "An ancient battlefield monument has begun weeping blood, attracting cultists and scavengers.",
-    "A traveling wizard\'s wagon broke down, scattering magical scrolls that have animated local scarecrows.",
-    "Nomadic herders report their cattle are being abducted by strange lights that descend from the night sky.",
-    "A ruined guard tower contains a basement vault that can only be opened when the sun hits a certain angle.",
-    "A local regional guild is hiring mercenaries to clear out giant burrowing beetles that are destroying pastures.",
-    "Ancient standing stones are humming, causing horses and draft beasts to refuse to cross the plain.",
-    "A massive flock of migratory birds has settled in the valley, refusing to move and attacking anyone who approaches."
-];
-
-const MAGICAL_HOOKS = [
-    "Raw mana surges are creating anti-gravity pockets, causing boulders and trees to float.",
-    "A tear in space-time has opened, showing a sky filled with unfamiliar stars and alien mountains.",
-    "Glowing crystal structures are rapidly growing and encasing the landscape in resonant pink glass.",
-    "Fey spirits are playing dangerous pranks on travelers, trapping them in loops of endless dancing.",
-    "Shadows in this sector are detaching from their owners and acting with malicious intent.",
-    "Bioluminescent vines have begun crawling over everything, draining magic from items and spells.",
-    "A massive arcane tower fell from the sky, landing perfectly intact but locked from the inside.",
-    "Charged ley-lines are sparking, turning normal rain into showers of sparkling, warm purple sparks.",
-    "Resonant crystalline dust in the air is causing spellcasters to experience wild magic surges.",
-    "Obsidian spires have erupted from the ground, crackling with raw dimensional energy."
-];
-
 // ── Procedural Description & Hook Generator ──────────────────────────────────
 export function getProceduralHooks(x, y, biome, faction, city, poi, temp, height, seedString) {
     const rng = new RNG(seedString + `_hooks_${x}_${y}`);
@@ -241,34 +150,15 @@ export function getProceduralHooks(x, y, biome, faction, city, poi, temp, height
     const sights = sensorySights[category];
     const sight = rng.pick(sights);
 
-    // Pick hooks based on category
-    let hookLibrary = PLAINS_HOOKS;
-    if (category === 'aquatic') hookLibrary = AQUATIC_HOOKS;
-    else if (category === 'arid') hookLibrary = ARID_HOOKS;
-    else if (category === 'mountain') hookLibrary = MOUNTAIN_HOOKS;
-    else if (category === 'cold') hookLibrary = COLD_HOOKS;
-    else if (category === 'magical') hookLibrary = MAGICAL_HOOKS;
-    else if (category === 'woodland') hookLibrary = WOODLAND_HOOKS;
-
     if (city) {
-        desc = `You enter the outskirts of ${city.name}, a bustling ${city.isCapital ? 'capital city' : 'regional settlement'} showing high activity. Patrols keep the main roads safe, though whispers of local friction are common.`;
-        hooks = [
-            `A merchant representative is hiring guards for a high-value cargo run through hazardous territory.`,
-            `Rumors circulate in the local tavern that key officials are secretly allied with ${faction !== "None" ? faction : 'a covert guild of outlaws'}.`
-        ];
+        desc = generateCityDescription(rng, city.name, city.isCapital, faction);
+        hooks = generateAdventureHooks(rng, 'city', category, faction, biome);
     } else if (poi) {
-        desc = `${poi.name}. ${poi.desc}. The surrounding environment is quiet, almost hushed with anticipation.`;
-        hooks = [
-            `A half-mad hermit warns that opening the inner chambers will trigger an ancient seal affecting the entire region.`,
-            `Two rival groups are currently camped nearby, each planning an expedition to claim the secrets inside.`
-        ];
+        desc = `${poi.name}. ${poi.desc}`;
+        hooks = generateAdventureHooks(rng, poi.type, category, faction, biome);
     } else {
-        desc = `A stretch of ${biome} terrain. Your senses register ${sight}. ${faction !== "None" ? `The territory is frequented by ${faction}.` : 'The area is quiet, seemingly untouched by civilization.'}`;
-        
-        hooks = [rng.pick(hookLibrary), rng.pick(hookLibrary)];
-        while (hooks[0] === hooks[1]) {
-            hooks[1] = rng.pick(hookLibrary);
-        }
+        desc = generateSectorDescription(rng, biome, sight, faction);
+        hooks = generateAdventureHooks(rng, 'wilderness', category, faction, biome);
     }
 
     return { desc, hooks };
