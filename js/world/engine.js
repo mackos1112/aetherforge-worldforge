@@ -474,7 +474,9 @@ export class WorldEngine {
                 const pathPoints = [];
                 // Allow longer rivers on bigger maps (scale path trace guard dynamically)
                 const maxPathLength = W * H;
-                while (curr !== -1) {
+                const visited = new Uint8Array(W * H);
+                while (curr !== -1 && !visited[curr]) {
+                    visited[curr] = 1;
                     this.riverMap[curr] = 1;
                     const cx = curr % W;
                     const cy = Math.floor(curr / W);

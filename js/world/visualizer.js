@@ -75,8 +75,10 @@ export class WorldVisualizer {
         setTimeout(() => {
             try {
                 const seed = this.inp_seed.value || String(Math.random());
-                const customW = this.inp_custom_w ? parseInt(this.inp_custom_w.value, 10) : 512;
-                const customH = this.inp_custom_h ? parseInt(this.inp_custom_h.value, 10) : 256;
+                let customW = this.inp_custom_w ? parseInt(this.inp_custom_w.value, 10) : 512;
+                let customH = this.inp_custom_h ? parseInt(this.inp_custom_h.value, 10) : 256;
+                if (isNaN(customW) || customW <= 0) customW = 512;
+                if (isNaN(customH) || customH <= 0) customH = 256;
                 const allowMagic = this.chk_magic ? this.chk_magic.checked : true;
                 const landmass = this.sel_landmass ? this.sel_landmass.value : 'continents';
 
