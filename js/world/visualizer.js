@@ -28,6 +28,9 @@ export class WorldVisualizer {
         this.showCities     = true;
         this.showPOIs       = true;
 
+        this.offscreenCanvas = document.createElement('canvas');
+        this.offscreenCtx    = this.offscreenCanvas.getContext('2d');
+
         // Cached image data for surface map (fast redraw)
         this._surfaceCache = null;
         this._cacheW = 0;
@@ -235,12 +238,12 @@ export class WorldVisualizer {
         const W = this.world.width, H = this.world.height;
 
         // Build a pixel buffer for the base terrain (cached)
-        const pw = Math.max(1, Math.round(W * ts));
-        const ph = Math.max(1, Math.round(H * ts));
-        if (!this._surfaceCache || this._cacheW !== pw || this._cacheH !== ph) {
-            this._buildSurfaceCache(pw, ph, W, H);
+        if (!this._surfaceCache || this._cacheW !== W || this._cacheH !== H) {
+            this._buildSurfaceCache(W, H);
         }
-        this.ctx.putImageData(this._surfaceCache, Math.round(ox), Math.round(oy));
+        this.ctx.imageSmoothingEnabled = false;
+        this.ctx.drawImage(this.offscreenCanvas, Math.round(ox), Math.round(oy), W * ts, H * ts);
+        this.ctx.imageSmoothingEnabled = true;
 
         // Topography contours
         if (this.showTopography) {
@@ -432,18 +435,18 @@ export class WorldVisualizer {
         this._drawLegend();
     }
 
-    _buildSurfaceCache(pw, ph, W, H) {
-        const img = new ImageData(pw, ph);
+    _buildSurfaceCache(W, H) {
+        this.offscreenCanvas.width = W;
+        this.offscreenCanvas.height = H;
+        const img = new ImageData(W, H);
         const data = img.data;
         const hMap = this.world.heightMap;
         const bMap = this.world.biomeMap;
         const rMap = this.world.riverMap;
 
-        for (let iy = 0; iy < ph; iy++) {
-            const ty = Math.floor(iy / ph * H);
+        for (let ty = 0; ty < H; ty++) {
             const rowOffset = ty * W;
-            for (let ix = 0; ix < pw; ix++) {
-                const tx = Math.floor(ix / pw * W);
+            for (let tx = 0; tx < W; tx++) {
                 const idx = rowOffset + tx;
 
                 const biomeIdx = bMap[idx];
@@ -462,13 +465,13 @@ export class WorldVisualizer {
                 
                 const hWest = hMap[ty * W + westTx];
                 const hEast = hMap[ty * W + eastTx];
-                const hNorth = hMap[northTy * W + tx];
-                const hSouth = hMap[southTy * W + tx];
+                const hNorthVal = hMap[northTy * W + tx];
+                const hSouthVal = hMap[southTy * W + tx];
                 
                 // Scale factor to amplify or reduce slope impact
                 const slopeScale = 4.0; 
                 const dx = (hEast - hWest) * slopeScale;
-                const dy = (hSouth - hNorth) * slopeScale;
+                const dy = (hSouthVal - hNorthVal) * slopeScale;
                 
                 // Light source from North-West (135 degrees)
                 const lx = -0.707;
@@ -482,31 +485,32 @@ export class WorldVisualizer {
                 const nz = 1.0 / len;
                 
                 // Dot product for diffuse lighting
-                 const dot = nx * lx + ny * ly + nz * lz;
-                 
-                 // Combine height coloring + directional shading (stepped 10 levels)
-                 const steps = 10;
-                 const hStepped = Math.floor(h * steps) / steps;
-                 const heightFactor = 0.5 + hStepped * 0.5;
-                 const lightFactor = Math.max(0.4, Math.min(1.6, dot * 1.5));
-                 const shade = heightFactor * lightFactor;
-                 
-                 r = Math.min(255, Math.max(0, Math.round(r * shade)));
+                const dot = nx * lx + ny * ly + nz * lz;
+                
+                // Combine height coloring + directional shading (stepped 10 levels)
+                const steps = 10;
+                const hStepped = Math.floor(h * steps) / steps;
+                const heightFactor = 0.5 + hStepped * 0.5;
+                const lightFactor = Math.max(0.4, Math.min(1.6, dot * 1.5));
+                const shade = heightFactor * lightFactor;
+                
+                r = Math.min(255, Math.max(0, Math.round(r * shade)));
                 g = Math.min(255, Math.max(0, Math.round(g * shade)));
                 b = Math.min(255, Math.max(0, Math.round(b * shade)));
 
                 // River tint override
                 if (rMap[idx] === 1) { r = 58; g = 148; b = 180; }
-                const pIdx = (iy * pw + ix) * 4;
+                const pIdx = (ty * W + tx) * 4;
                 data[pIdx]   = r;
                 data[pIdx+1] = g;
                 data[pIdx+2] = b;
                 data[pIdx+3] = 255;
             }
         }
-        this._surfaceCache = img;
-        this._cacheW = pw;
-        this._cacheH = ph;
+        this.offscreenCtx.putImageData(img, 0, 0);
+        this._surfaceCache = true;
+        this._cacheW = W;
+        this._cacheH = H;
     }
 
     _drawLegend() {
