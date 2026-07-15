@@ -613,25 +613,54 @@ export class WorldVisualizer {
         for (const r of Object.values(R)) {
             ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
         }
-
-        // Labels
-        ctx.fillStyle = '#e5e0c3';
-        ctx.font = `${Math.max(9, 11 * S)}px 'Share', sans-serif`;
-        ctx.textAlign = 'left';
-        const labelsRight = [
-            [R.exo + R.magneto, 'Magnetosphere'],
-            [R.thermo + R.exo,  'Exosphere'],
-            [R.strato + R.meso, 'Thermosphere'],
-            [R.tropo + R.strato,'Mesosphere / Stratosphere'],
-            [R.crust + R.tropo, 'Troposphere'],
-            [R.litho + R.crust, 'Crust / Lithosphere'],
-            [R.mantle,          'Mantle'],
-            [R.outerCore,       'Outer Core'],
-            [R.innerCore * 0.5, 'Inner Core'],
+        // Labels with connector lines and target dots
+        const layersInfo = [
+            { name: 'Magnetosphere',          rInner: R.exo,      rOuter: R.magneto,    a: -0.55 },
+            { name: 'Exosphere',              rInner: R.thermo,   rOuter: R.exo,        a: -0.45 },
+            { name: 'Thermosphere',           rInner: R.meso,      rOuter: R.thermo,     a: -0.35 },
+            { name: 'Mesosphere / Stratosphere', rInner: R.tropo, rOuter: R.meso,      a: -0.25 },
+            { name: 'Troposphere',            rInner: R.crust,    rOuter: R.tropo,      a: -0.15 },
+            { name: 'Crust / Lithosphere',    rInner: R.astheno,  rOuter: R.crust,      a: -0.05 },
+            { name: 'Asthenosphere',          rInner: R.mantle,   rOuter: R.astheno,    a: 0.05 },
+            { name: 'Mantle',                 rInner: R.outerCore,rOuter: R.mantle,     a: 0.15 },
+            { name: 'Outer Core',             rInner: R.innerCore,rOuter: R.outerCore,  a: 0.25 },
+            { name: 'Inner Core',             rInner: 0,          rOuter: R.innerCore,  a: 0.35 },
         ];
-        labelsRight.forEach(([r, label]) => {
-            const a = -0.4;
-            ctx.fillText(label, cx + Math.cos(a) * r + 6, cy + Math.sin(a) * r);
+
+        layersInfo.forEach((lyr) => {
+            const rMid = lyr.rInner === 0 ? lyr.rOuter * 0.45 : (lyr.rInner + lyr.rOuter) / 2;
+            const a = lyr.a;
+            
+            // Outer point where label is placed
+            const outerR = R.magneto + 30;
+            const xText = cx + Math.cos(a) * outerR;
+            const yText = cy + Math.sin(a) * outerR;
+            
+            // Inner point inside the layer
+            const xLayer = cx + Math.cos(a) * rMid;
+            const yLayer = cy + Math.sin(a) * rMid;
+            
+            // Draw pointer line
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(229, 224, 195, 0.45)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 3]);
+            ctx.moveTo(xLayer, yLayer);
+            ctx.lineTo(xText, yText);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset
+            
+            // Draw a small dot at the end inside the layer
+            ctx.beginPath();
+            ctx.fillStyle = '#ffd166';
+            ctx.arc(xLayer, yLayer, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw text
+            ctx.fillStyle = '#e5e0c3';
+            ctx.font = `${Math.max(9, 11 * S)}px 'Share', sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.fillText(lyr.name, xText + 4, yText + 3);
         });
     }
 
