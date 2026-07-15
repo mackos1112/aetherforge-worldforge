@@ -9,7 +9,13 @@ export const THEMES = {
     forest: { hue: 142, name: "Sylvan Forest" },
     desert: { hue: 45, name: "Dune Sea" },
     swamp: { hue: 175, name: "Fey Swamp" },
-    volcanic: { hue: 0, name: "Ashen Wastes" }
+    volcanic: { hue: 0, name: "Ashen Wastes" },
+    crystal_depths: { hue: 195, name: "Crystal Depths" },
+    mana_wastes: { hue: 275, name: "Mana Wastes" },
+    whispering_fens: { hue: 120, name: "Whispering Fens" },
+    badlands: { hue: 15, name: "Badlands" },
+    oasis: { hue: 150, name: "Oasis Oasis" },
+    coral_reef: { hue: 180, name: "Coral Reef" }
 };
 
 // Tile Types configuration

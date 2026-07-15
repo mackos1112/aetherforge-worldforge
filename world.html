@@ -50,6 +50,10 @@
                     <input type="checkbox" id="chkPoliticalView">
                     <span class="switch-text">Political Borders</span>
                 </label>
+                <label class="switch-label" title="Show topographic elevation contours">
+                    <input type="checkbox" id="chkTopography" checked>
+                    <span class="switch-text">Topography</span>
+                </label>
                 <label class="switch-label" title="Show cities and capitals">
                     <input type="checkbox" id="chkShowCities" checked>
                     <span class="switch-text">Cities</span>
@@ -80,10 +84,43 @@
                     <div class="control-group">
                         <label for="selectPlanetSize">Planet Dimensions</label>
                         <select id="selectPlanetSize" class="form-control">
-                            <option value="small">Small (32x32 sectors)</option>
-                            <option value="medium" selected>Medium (48x48 sectors)</option>
-                            <option value="large">Large (64x64 sectors)</option>
+                            <option value="small">Standard (128x64)</option>
+                            <option value="medium" selected>Grand (256x128)</option>
+                            <option value="large">Colossal (512x256)</option>
+                            <option value="legendary">Planetary (1024x512)</option>
+                            <option value="epic">Epic / Continental (2048x1024)</option>
+                            <option value="custom">Custom...</option>
                         </select>
+                    </div>
+
+                    <!-- Custom Dimensions -->
+                    <div class="control-group" id="customDimGroup" style="display:none;">
+                        <div style="display:flex; gap:8px;">
+                            <div style="flex:1;">
+                                <label for="inputCustomWidth" style="font-size:11px;">Width</label>
+                                <input type="number" id="inputCustomWidth" class="form-control" value="512" min="32" max="4096" style="padding: 4px 8px; font-size:12px;">
+                            </div>
+                            <div style="flex:1;">
+                                <label for="inputCustomHeight" style="font-size:11px;">Height</label>
+                                <input type="number" id="inputCustomHeight" class="form-control" value="256" min="16" max="2048" style="padding: 4px 8px; font-size:12px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="selectLandmass">Landmass Type</label>
+                        <select id="selectLandmass" class="form-control">
+                            <option value="continents" selected>Continents</option>
+                            <option value="pangea">Pangea</option>
+                            <option value="islands">Islands & Archipelagos</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group" style="margin-top: 12px; margin-bottom: 12px;">
+                        <label class="switch-label" title="Enable fantasy/magical biomes & anomalies" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="chkAllowMagic" checked style="cursor:pointer;">
+                            <span class="switch-text" style="font-weight:bold; color:#ffd166;">Allow Magic Anomalies</span>
+                        </label>
                     </div>
 
                     <div class="control-group">
