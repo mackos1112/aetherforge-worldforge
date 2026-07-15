@@ -409,9 +409,15 @@ export class WorldEngine {
         if (sources.length === 0) return;
 
         // 2. Generate rivers using downhill spillway carving
-        const numRivers = Math.floor(W * 0.18);
+        const numRivers = Math.floor(W * 0.16);
         for (let i = 0; i < numRivers; i++) {
-            const start = this.rng.pick(sources);
+            let start = this.rng.pick(sources);
+            let attempts = 0;
+            while (attempts < 20 && this.riverMap[start.y * W + start.x] === 1) {
+                start = this.rng.pick(sources);
+                attempts++;
+            }
+
             let rx = start.x, ry = start.y;
             let steps = 0;
             const pathPoints = [];
@@ -443,6 +449,10 @@ export class WorldEngine {
                     const nx = (rx + dx + W) % W;
                     const ny = Math.max(0, Math.min(H - 1, ry + dy));
                     const nIdx = ny * W + nx;
+                    
+                    // Exclude visited cells to prevent back-and-forth cycles
+                    if (visited[nIdx]) continue;
+                    
                     const nH = this.heightMap[nIdx];
 
                     if (nH < lowestH) {
