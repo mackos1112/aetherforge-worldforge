@@ -291,7 +291,27 @@ const VESSEL_TYPES = [
     "ironclad steam frigate",
     "hollowed kraken-shell barge",
     "gilded pleasure yacht of a dead prince",
-    "buoyant corkwood catamarans"
+    "buoyant corkwood catamarans",
+    "haunted plague clipper",
+    "sunken turtle-ship",
+    "renegade privateer corvette",
+    "obsidian-plated dreadnought",
+    "glowing ghost-cutter",
+    "heavy dwarven ironclad",
+    "shadow-plane drift-ship",
+    "spectral whaling brig",
+    "subterranean drillsloop",
+    "ancient dragon-prowed longship",
+    "fey-wild reed-raft",
+    "rusting junk-boat",
+    "armored treasure caravel",
+    "runic sky-clipper",
+    "aether-infused galleas",
+    "barnacle-clad leviathan-hunter",
+    "doomed arctic icebreaker",
+    "undead skeletal junk",
+    "cursed drow catamaran",
+    "royal flag-galleon"
 ];
 
 const CREATURES = [
@@ -309,7 +329,157 @@ const CREATURES = [
     "a swarm of rust monsters",
     "a pair of nesting griffins",
     "a lingering, hungry ghost",
-    "a rogue stone gargoyle"
+    "a rogue stone gargoyle",
+    "an ancient red dragon",
+    "a pair of mating owlbears",
+    "a group of scavenging gnolls",
+    "a territorial stone giant",
+    "a lurking cave fisher",
+    "a deep-sea kraken sprout",
+    "a school of venomous reef-sharks",
+    "a flight of blood-crazed stirges",
+    "a pair of iron-scaled basilisks",
+    "a lumbering forest ettin",
+    "a wandering clockwork golem",
+    "a pack of undead shadow-hounds",
+    "a group of marsh goblins",
+    "a swarm of necrotic carrion crawlers",
+    "a lurking roper",
+    "a pair of territorial chimeras",
+    "a solitary desert wyvern",
+    "a group of tomb skeletons",
+    "a deep-chasm otyugh",
+    "a pack of rabid winter wolves",
+    "a territorial frost giant",
+    "a herd of wild griffins",
+    "a group of subterranean driders",
+    "a flock of razor-feathered hippogriffs",
+    "a swamp-dwelling green hag",
+    "a pair of nesting perytons",
+    "a swarm of toxic swamp-flies",
+    "a group of desert dust devils",
+    "a territorial mountain cyclops",
+    "a pair of hungry hill giants",
+    "a pack of undead ghouls",
+    "a group of fire-dwelling salamanders",
+    "a territorial copper dragon",
+    "a deep-cave cloaker",
+    "a pair of shadow-elves",
+    "a swarm of stinging magma-wasps",
+    "a pack of skeletal riders",
+    "a group of cavern troglodytes",
+    "a pair of phase-spiders",
+    "a territorial forest treant",
+    "a group of river merfolk",
+    "a deep-sea giant octopus",
+    "a pair of nesting rock-rocs",
+    "a swarm of void-parasites",
+    "a group of elemental mud-mephits",
+    "a territorial ice devil",
+    "a pair of hungry yeti",
+    "a pack of feral gnolls",
+    "a group of ash-wastes wights",
+    "a territorial volcanic hydra",
+    "a pair of deepwood dryads",
+    "a school of razor-toothed piranhas",
+    "a flock of spectral ravens",
+    "a swarm of crystal-wasps",
+    "a group of cave-dwelling grimlocks",
+    "a territorial cloud giant",
+    "a pair of swamp-dwelling hydras",
+    "a pack of skeletal archers",
+    "a group of flame-skulls",
+    "a territorial stone chimera",
+    "a pair of deep-sea sahuagin",
+    "a flock of giant bats",
+    "a swarm of shadow-rats",
+    "a group of desert gnolls",
+    "a territorial blue dragon",
+    "a pair of forest centaurs",
+    "a pack of phase-cats",
+    "a group of cave ghouls",
+    "a territorial glacier worm",
+    "a pair of volcanic fire-drakes",
+    "a school of giant sea-eels",
+    "a flock of blood-harpies",
+    "a swarm of necrotic locusts",
+    "a group of marsh trolls",
+    "a territorial shadow demon",
+    "a pair of crystalline gargoyles",
+    "a pack of plague-rats",
+    "a group of mountain orcs",
+    "a territorial black dragon",
+    "a pair of forest satyrs",
+    "a pack of blink dogs",
+    "a group of sewer kobolds",
+    "a territorial cave bear",
+    "a pair of volcanic magma-golems",
+    "a school of reef-sharks",
+    "a flock of giant eagles",
+    "a swarm of bone-beetles",
+    "a group of desert bandits",
+    "a territorial green dragon",
+    "a pair of swamp lizardfolk",
+    "a pack of shadow-hounds",
+    "a group of tomb mummies",
+    "a territorial storm giant",
+    "a pair of forest owlbears",
+    "a school of electric eels",
+    "a flock of skeletal gargoyles",
+    "a swarm of poison-spiders",
+    "a group of mountain goblins",
+    "a territorial red wyrmling",
+    "a pair of cave trolls",
+    "a pack of winter wolves",
+    "a group of sea hags",
+    "a territorial stone gargoyle",
+    "a pair of volcanic drakes",
+    "a school of giant squids",
+    "a flock of wind-harpies",
+    "a swarm of ash-wasps",
+    "a group of marsh ghouls",
+    "a territorial shadow-dragon",
+    "a pair of crystalline chimeras",
+    "a pack of blood-wolves",
+    "a group of deep-sea merfolk",
+    "a territorial cave hydra",
+    "a pair of forest dryads",
+    "a school of spectral fish",
+    "a flock of giant ravens",
+    "a swarm of mana-leeches",
+    "a group of desert gargoyles",
+    "a territorial brass dragon",
+    "a pair of swamp trolls",
+    "a pack of shadow-panthers",
+    "a group of tomb wights",
+    "a territorial frost wyrm",
+    "a pair of forest griffins",
+    "a school of toxic jellyfish",
+    "a flock of skeletal ravens",
+    "a swarm of clockwork locusts",
+    "a group of mountain trolls",
+    "a territorial black wyrmling",
+    "a pair of cave dryads",
+    "a pack of timber wolves",
+    "a group of reef merfolk",
+    "a territorial stone hydra",
+    "a pair of volcanic gargoyles",
+    "a school of hammerhead sharks",
+    "a flock of sky-harpies",
+    "a swarm of shadow-wasps",
+    "a group of marsh wights",
+    "a territorial copper wyrmling",
+    "a pair of crystalline basilisks",
+    "a pack of plague-hounds",
+    "a group of deep-sea sahuagin",
+    "a territorial cave gargoyle",
+    "a pair of forest satyrs",
+    "a school of ghost-fish",
+    "a flock of giant owls",
+    "a swarm of bone-wasps",
+    "a group of desert wights",
+    "a territorial bronze dragon",
+    "a pair of swamp hags"
 ];
 
 const OBJECTIVES = [
@@ -326,7 +496,107 @@ const OBJECTIVES = [
     "excavate a buried planetary anchor",
     "investigate a series of structural tremors",
     "purify a desecrated elemental node",
-    "steal a relic from the central altar"
+    "steal a relic from the central altar",
+    "recover the lost crown of the dragon-king",
+    "assassinate a high-ranking cult lieutenant",
+    "sabotage the enemy's siege engine assembly",
+    "transcribe the glyphs from an ancient obelisk",
+    "escort a VIP to the safety of the main sanctuary",
+    "disarm a ticking magical explosive device",
+    "capture a live elemental wisp for research",
+    "plant a tracking sigil inside the beast's lair",
+    "secure a supply route through the hazardous pass",
+    "decode the private journal of the mad baron",
+    "retrieve the body of a fallen high paladin",
+    "poison the rations of the occupying outpost",
+    "negotiate a temporary truce between warring clans",
+    "activate the beacon on top of the ruined spire",
+    "steal the ledger of the corrupt merchant guild",
+    "destroy a cursed mirror that traps souls",
+    "forage for the glowing mushrooms needed for an antidote",
+    "find a lost heir hiding under a false identity",
+    "destroy the skeletal remains of the lich before it revives",
+    "intercept a courier carrying troop movements",
+    "dismantle a portal linking to the demonic abyss",
+    "sabotage the dam to flood the canyon outpost",
+    "protect the sacred seed-tree from corruption",
+    "retrieve the heart-gem of a dormant colossus",
+    "locate the wreckage of the royal skyship",
+    "purify the corrupted town well using holy salt",
+    "secure the signing of the charter treaty",
+    "investigate a series of livestock disappearances",
+    "destroy a crop of poisonous blood-roses",
+    "steal the blueprints of the fortified dungeon",
+    "rescue a group of trapped dwarf miners",
+    "assassinate the phantom leader of the outlaws",
+    "locate the hidden laboratory of the flesh-sculptor",
+    "retrieve a bottled star from the wizard study",
+    "deactivate the sentinel cannons guarding the bridge",
+    "transcribe the final words of the oracle stele",
+    "escort a caravan carrying winter food supplies",
+    "capture the rogue war-golem intact",
+    "recover the stolen chalice of the sun church",
+    "destroy the focus crystal powering the portal",
+    "gather information about a secret cult meeting",
+    "find the tomb of the legendary general",
+    "rescue a captured high-priestess",
+    "dismantle a illegal smuggler ring",
+    "sabotage the mining operation's blast powder cache",
+    "retrieve the head of the alpha wyvern",
+    "investigate the strange purple lights in the swamp",
+    "secure the main harbor from sea raiders",
+    "decode a series of letters between rebel leaders",
+    "destroy a localized gravity-well mechanism",
+    "retrieve a piece of the falling sky-meteor",
+    "find a hidden oasis mentioned in ancient maps",
+    "rescue a lost search party in the mountains",
+    "investigate a sudden silence in the regional capital",
+    "destroy a shrine dedicated to the shadow lord",
+    "retrieve a legendary shield from a glacier crack",
+    "escort an eccentric researcher to the rift",
+    "capture the ringleader of a shadow-assassins guild",
+    "sabotage the trade alliance treaty negotiations",
+    "recover a load of stolen silver ore",
+    "purify a corrupted graveyard that is spawning ghouls",
+    "steal the master keys from the warden",
+    "investigate a series of earthquakes near the volcano",
+    "retrieve a flask of magma-water from the caldera",
+    "dismantle a network of magical spying eyes",
+    "rescue a druid trapped in a iron cage",
+    "find the legendary sword embedded in the rock",
+    "sabotage the enemy's war-beast stables",
+    "retrieve a map showing hidden trade passages",
+    "destroy a corrupted elemental focus crystal",
+    "investigate reports of a phantom ship in the bay",
+    "secure a peaceful trade agreement with centaur clans",
+    "retrieve the diary of a missing archaeologist",
+    "dismantle a localized anti-magic field generator",
+    "rescue the kidnapped daughter of the magistrate",
+    "steal the sacred standard of the enemy army",
+    "sabotage a bridge to prevent army movements",
+    "retrieve a legendary bow from a treetop nest",
+    "investigate the sudden appearance of a crystal spire",
+    "secure the mountain pass from frost giants",
+    "decode the message scrolls of the enemy general",
+    "destroy a cursed sword before it claims another owner",
+    "retrieve a bag of ancient, glowing coins",
+    "find a lost temple hidden in the dense jungle",
+    "rescue an imprisoned rebel writer",
+    "dismantle a gang of harbor thieves",
+    "sabotage the war-horns of the enemy outpost",
+    "retrieve the scale of a ancient blue dragon",
+    "investigate the origin of a strange sleep-dust",
+    "secure the ruins of a ancient spell-academy",
+    "decode a spy's report before the king reads it",
+    "destroy a nest of mutated cave crawlers",
+    "retrieve a vial of blood from a demon-prince",
+    "find a hidden path through the badlands",
+    "rescue a caravan trapped in a sandstorm",
+    "dismantle a cursed lighthouse before it wrecks more ships",
+    "sabotage the cargo docks of the rival merchants",
+    "retrieve a legendary shield from the volcano tomb",
+    "investigate the haunting of the local orphanage",
+    "secure the crown-jewels during a palace coup"
 ];
 
 const COMPLICATIONS = [
@@ -341,371 +611,323 @@ const COMPLICATIONS = [
     "but the area is prone to sudden, violent tectonic shifts",
     "but a curse causes all light sources to slowly burn out",
     "but the location is surrounded by a dense field of landmines",
-    "but the local wildlife has been driven into a blind frenzy"
+    "but the local wildlife has been driven into a blind frenzy",
+    "but a thick magic-nullifying field prevents any spellcasting",
+    "but the entrance is buried under a recent rockslide",
+    "but the area is patrolled by royal air-skiffs",
+    "but a heavy localized gravity well slows down all movements",
+    "but the objective is trapped behind a riddle door",
+    "but an infectious red rot has begun spreading through the walls",
+    "but a sudden volcanic eruption has cut off the primary escape route",
+    "but the keys were swallowed by a giant cave-crawler",
+    "but the primary chambers are completely flooded with acidic water",
+    "but the local flora has animated and is actively hostile",
+    "but they must do it without setting off the ancient alarms",
+    "but a temporal rift causes time to loop every ten minutes",
+    "but they only have until midnight before the seals lock forever",
+    "but the target is protected by a squad of iron-clad defenders",
+    "but the area has been claimed as sacred ground by regional zealots",
+    "but a thick sheet of glacial ice blocks the inner sanctum",
+    "but the local ley-lines are melting the stone itself",
+    "but the air is completely void of oxygen, requiring air tanks",
+    "but they are pursued by a relentless bounty hunter team",
+    "but a series of illusions makes it impossible to trust your eyes",
+    "but the key mechanism requires a drop of royal blood",
+    "but any loud noise will cause the ceiling to collapse",
+    "but the area is cursed to make anyone who enters slowly lose their memory",
+    "but the local faction has set up a massive military perimeter",
+    "but the objective is protected by a sleeping ancient drake",
+    "but the local well-water is laced with a slow-acting poison",
+    "but a thick swamp-mist makes visibility near zero",
+    "but the entrance is only accessible during a solar eclipse",
+    "but a magical barrier drains magic items of their charges",
+    "but the local ground is highly unstable and prone to sinkholes",
+    "but they are being watched by invisible spectral eyes",
+    "but a dense field of razor-sharp briars blocks the paths",
+    "but the local inhabitants have been infected with madness",
+    "but the objective is located in the middle of a war-zone",
+    "but the keys are held by a high-ranking inquisitor",
+    "but the local temperature is freezing enough to shatter steel",
+    "but a series of pressure plates activates gas traps",
+    "but the path is guarded by an army of stone gargoyles",
+    "but the local water is boiling hot due to thermal vents",
+    "but the entrance is warded to incinerate anyone who does not speak the password",
+    "but a thick cloud of ash makes breathing impossible",
+    "but the objective is locked inside a floating obsidian block",
+    "but the local gravity shifts ninety degrees every few minutes",
+    "but the area is surrounded by a dense field of explosive runes",
+    "but any spell cast in the area triggers a wild magic surge",
+    "but a phantom fog causes travelers to experience waking nightmares",
+    "but the local fauna has been mutated by raw aether spills",
+    "but the path requires crossing a decaying rope bridge over a chasm",
+    "but the key is hidden inside the stomach of a giant serpent",
+    "but the inner doors are sealed by a lock that requires three keys",
+    "but the local structure is guarded by a sleeping golem",
+    "but the air is filled with a sweet gas that causes deep sleep",
+    "but the area is haunted by a banshee whose wails stun travelers",
+    "but the local water has been turned to blood by a curse",
+    "but the path is blocked by a massive, moving wall labyrinth",
+    "but the objective is protected by a shield of cold-fire",
+    "but a series of localized earthquakes is destroying the walls",
+    "but the key is in the possession of a rival adventurer group",
+    "but the entrance is only visible when viewed in a mirror",
+    "but a magical ward prevents anyone from leaving once they enter",
+    "but the local stone is highly magnetic, pulling iron weapons away",
+    "but the area is infested with a swarm of rust monsters",
+    "but the path is guarded by an army of spectral warriors",
+    "but a sudden flash-flood has filled the lower tunnels",
+    "but the local temperature is hot enough to melt lead",
+    "but the entrance is hidden behind a waterfall of liquid silver",
+    "but the local flora releases spores that cause blindness",
+    "but the objective is protected by a sentinel that mirrors your moves",
+    "but the area is cursed to reverse the effects of all healing spells",
+    "but the path requires solving a musical puzzle using standing stones",
+    "but a thick sheet of obsidian glass seals the vaults",
+    "but the local ley-lines are sparking, causing lightning strikes",
+    "but the keys have been scattered across the swamp",
+    "but the entrance is guarded by a pack of phase-wolves",
+    "but the local inhabitants are highly suspicious of outsiders",
+    "but a magic circle drains the life-force of anyone who stands in it",
+    "but the path is blocked by a massive pile of burning rubble",
+    "but the objective is guarded by a giant, multi-eyed cave crawler",
+    "but the local air contains a gaseous poison that corrodes armor",
+    "but the entrance requires a password that has been forgotten for centuries"
 ];
 
-const POI_DICTIONARIES = {
+function combine(arr1, arr2) {
+    const res = [];
+    for (const a of arr1) {
+        for (const b of arr2) {
+            res.push(`${a} ${b}`);
+        }
+    }
+    return res;
+}
+
+const RAW_POI_TEMPLATES = {
     crypt: {
-        adj: [
-            'necrotic', 'ashen', 'sepulchral', 'tomb-cold', 'hallowed', 'defiled', 'silent', 'dust-choked', 'dread-filled', 'spectral',
-            'mummified', 'embalmed', 'unconsecrated', 'plundered', 'ancient'
-        ],
-        nouns: ['mausoleum', 'ossuary', 'catacomb', 'sepulcher', 'charnel-house', 'tomb-vault', 'sarcophagus hall', 'crypt complex', 'burial shaft'],
-        sights: [
-            'dust-covered stone sarcophagi carved with agonized effigies',
-            'orderly walls of stacked skulls looking out with empty sockets',
-            'cracked paving stones stained with old, dried embalming oils',
-            'flickering, cold-blue candles that burn without melting down',
-            'heavy chains wrapped around stone coffins to keep them shut',
-            'urns filled with silver ash lining the alcoves'
-        ],
-        sounds: [
-            'the dry scraping of stone on stone', 'faint, rhythmic weeping echoing from the deepest vault', 
-            'a low, whistling draft like a dying breath', 'distant clicking of skeletal joints'
-        ],
-        smells: ['dust, dry bone, and centuries-old decay', 'musty earth mixed with bitter myrrh and incense', 'the sharp, metallic scent of cold stone', 'old damp burial soil'],
-        secrets: [
-            'a loose brick hiding a copper key', 'a hidden lever shaped like a stone hand', 
-            'runes that glow crimson when living blood is near', 'a pressure plate that triggers an arrow trap behind a fake skull'
-        ]
+        adj1: ['ashen', 'sepulchral', 'tomb-cold', 'hallowed', 'defiled', 'silent', 'dust-choked', 'dread-filled', 'spectral', 'mummified'],
+        adj2: ['necrotic', 'unconsecrated', 'decayed', 'shadowy', 'forgotten', 'cold', 'grim', 'dormant', 'forbidden', 'haunted'],
+        noun1: ['ancestral', 'royal', 'plundered', 'ancient', 'forgotten', 'secret', 'lordly', 'shadowy', 'cursed', 'blighted'],
+        noun2: ['mausoleum', 'ossuary', 'catacomb', 'sepulcher', 'charnel-house', 'tomb-vault', 'sarcophagus hall', 'crypt complex', 'burial shaft', 'tomb'],
+        sight1: ['dust-covered stone sarcophagi', 'orderly walls of stacked skulls', 'cracked paving stones', 'flickering cold-blue candles', 'heavy iron chains', 'urns filled with silver ash'],
+        sight2: ['carved with agonized effigies', 'looking out with empty sockets', 'stained with old embalming oils', 'burning without melting down', 'wrapped around stone coffins', 'lining the dark alcoves'],
+        sound1: ['the dry scraping', 'faint rhythmic weeping', 'a low whistling draft', 'distant clicking', 'a soft rattling'],
+        sound2: ['of stone on stone', 'echoing from the deepest vault', 'like a dying breath', 'of skeletal joints', 'of loose iron fittings'],
+        smell1: ['dust and dry bone', 'musty earth', 'sharp metallic scent', 'stagnant air'],
+        smell2: ['mixed with bitter myrrh', 'and centuries-old decay', 'of cold stone', 'of old damp burial soil'],
+        secret1: ['a loose brick', 'a hidden lever', 'runes that glow', 'a pressure plate', 'a hollow stone', 'a fake skull', 'a weeping statue', 'a sliding slab'],
+        secret2: ['hiding a copper key', 'shaped like a stone hand', 'radiating warm light', 'triggering an arrow trap', 'containing a family heirloom', 'unlocking a hidden compartment', 'revealing a chest of gold coins', 'masking an escape tunnel']
     },
     keep: {
-        adj: [
-            'battle-scarred', 'fortified', 'crenellated', 'crumbling', 'defiant', 'imposing', 'forbidding', 'wind-swept', 'shattered',
-            'besieged', 'iron-clad', 'moss-hung', 'abandoned', 'stout'
-        ],
-        nouns: ['bastion', 'keep', 'citadel', 'outpost', 'fortress', 'garrison', 'stronghold', 'barracks', 'lookout'],
-        sights: [
-            'toppled battlements and iron-reinforced portcullises rusted shut',
-            'shattered arrow slits looking over the surrounding valleys',
-            'defensive trenches filled with rusted chainmail and broken spears',
-            'a weather-worn coat of arms carved above the main gateway',
-            'cracked ballista frames positioned at the corner bastions',
-            'a dried-up moat filled with thorny briars'
-        ],
-        sounds: [
-            'the structural groan of timber under heavy wind', 'distant iron chains rattling in empty wells', 
-            'the flap of tattered war banners', 'the metallic scraping of a loose portcullis cog'
-        ],
-        smells: ['rust, damp soot, and dry rot', 'old leather, horse stables, and charcoal smoke', 'stagnant rainwater collected in stone basins', 'stale grease and damp hemp'],
-        secrets: [
-            'a subterranean escape tunnel leading to a nearby ravine', 'a wall cache containing old military orders', 
-            'a false stone concealing a hidden treasury', 'a murder hole that provides line-of-sight to the main gate corridor'
-        ]
+        adj1: ['battle-scarred', 'fortified', 'crenellated', 'crumbling', 'defiant', 'imposing', 'forbidding', 'wind-swept', 'shattered', 'besieged'],
+        adj2: ['iron-clad', 'moss-hung', 'abandoned', 'stout', 'ruined', 'weather-worn', 'grim', 'dilapidated', 'monumental', 'hollow'],
+        noun1: ['military', 'imperial', 'royal', 'frontier', 'border', 'shattered', 'decayed', 'ancient', 'forgotten', 'lordly'],
+        noun2: ['bastion', 'keep', 'citadel', 'outpost', 'fortress', 'garrison', 'stronghold', 'barracks', 'lookout', 'tower'],
+        sight1: ['toppled stone battlements', 'rusted iron portcullises', 'narrow arrow slits', 'weather-worn coats of arms', 'cracked ballista frames', 'dreaded defensive trenches'],
+        sight2: ['looking over the valleys', 'reinforced with iron bars', 'cluttered with broken spears', 'carved above the main gateway', 'positioned at the bastions', 'filled with thorny briars'],
+        sound1: ['the structural groan', 'distant iron chains', 'the constant flapping', 'the metallic scraping'],
+        sound2: ['of timber under wind', 'rattling in empty wells', 'of tattered war banners', 'of loose portcullis cogs'],
+        smell1: ['rust and damp soot', 'old leather and oil', 'stagnant pool water', 'stale grease'],
+        smell2: ['mixed with charcoal smoke', 'and dry wood rot', 'collected in stone basins', 'and damp hemp rope'],
+        secret1: ['a subterranean tunnel', 'a hidden wall cache', 'a false floor stone', 'a hidden murder hole', 'a secret loose brick', 'a rotating torch holder', 'a hollow shield display', 'a loose stone slab'],
+        secret2: ['leading to a nearby ravine', 'containing old military orders', 'concealing a hidden treasury', 'providing line-of-sight below', 'hiding a map of the region', 'unlocking a secret stairwell', 'revealing a chest of iron coins', 'opening a hidden escape hatch']
     },
     cave: {
-        adj: [
-            'geothermal', 'sulfur-choked', 'dripping', 'subterranean', 'cavernous', 'echoing', 'stalactite-studded', 'lava-warmed', 'shadowy',
-            'abyssal', 'slimy', 'crystal-encrusted', 'unmapped', 'damp'
-        ],
-        nouns: ['chasm', 'cavern system', 'lava tube', 'grotto', 'fissure', 'abyss', 'subterranean sinkhole', 'tunnel network'],
-        sights: [
-            'crystalline sulfur deposits glowing with a dull yellow sheen',
-            'steaming vents throwing thick plumes of vapor into the air',
-            'columns of interlocking stalactites and stalagmites meeting in the dark',
-            'deep thermal pools bubbling with boiling, mineral-rich mud',
-            'veins of raw gemstone glinting when exposed to light',
-            'subterranean lichen that pulses with a slow, sickly yellow light'
-        ],
-        sounds: [
-            'the deep, rhythmic bubbling of boiling mud', 'water droplets falling with a sharp ping into deep pools', 
-            'the low hiss of escaping high-pressure steam', 'the fluttering of thousands of bat wings overhead'
-        ],
-        smells: ['rotten eggs and sulfurous steam', 'damp rock, wet clay, and subterranean bat guano', 'the dry scent of superheated basalt', 'stagnant pool mold'],
-        secrets: [
-            'a narrow squeeze that leads to an untouched mineral vein', 'a thermal pocket that vents hot air on a cycle', 
-            'a pool of cool, drinkable water hidden behind steam vents', 'a mineral crust that can be broken to reveal fossilized skeletons'
-        ]
+        adj1: ['geothermal', 'sulfur-choked', 'dripping', 'subterranean', 'cavernous', 'echoing', 'stalactite-studded', 'lava-warmed', 'shadowy', 'abyssal'],
+        adj2: ['slimy', 'crystal-encrusted', 'unmapped', 'damp', 'chilly', 'mineral-rich', 'ancient', 'pitch-black', 'hollow', 'vibrating'],
+        noun1: ['subterranean', 'deep-chasm', 'unexplored', 'crystal', 'volcanic', 'ancient', 'flooded', 'echoing', 'wind-swept', 'shadowy'],
+        noun2: ['cavern', 'grotto', 'fissure', 'abyss', 'sinkhole', 'cave', 'tunnel', 'chasm', 'lava tube', 'pocket'],
+        sight1: ['crystalline sulfur deposits', 'steaming vapor vents', 'interlocking stalactite columns', 'deep thermal pools', 'glinting gemstone veins', 'glowing subterranean lichen'],
+        sight2: ['glowing with a yellow sheen', 'throwing plumes into the air', 'meeting in the dark ceiling', 'bubbling with mineral mud', 'tracing the rocky walls', 'pulsing with a sickly light'],
+        sound1: ['the deep bubbling', 'frequent water droplets', 'the low constant hiss', 'the sudden fluttering'],
+        sound2: ['of boiling mineral mud', 'falling into deep pools', 'of high-pressure steam', 'of bat wings overhead'],
+        smell1: ['rotten sulfur gas', 'damp wet clay', 'superheated basalt rock', 'stagnant cave mold'],
+        smell2: ['and boiling steam vents', 'mixed with bat guano', 'and dry mineral dust', 'released from wet stone'],
+        secret1: ['a narrow wall squeeze', 'a thermal gas pocket', 'a hidden pool', 'a fragile mineral crust', 'a loose boulder', 'a hollow stalagmite', 'a hidden rock crevice', 'a seismic fault line'],
+        secret2: ['leading to a silver vein', 'venting hot air on a cycle', 'of cool drinkable water', 'concealing fossilized bones', 'hiding a cache of raw gems', 'containing ancient tools', 'revealing a lower tunnel', 'blocking a volcanic vent']
     },
     temple: {
-        adj: [
-            'sunken', 'sacred', 'blasphemous', 'silt-smothered', 'monumental', 'algae-draped', 'revered', 'forgotten', 'hieroglyphic',
-            'consecrated', 'heretical', 'monolithic', 'gilded', 'ancient'
-        ],
-        nouns: ['sanctuary', 'ziggurat', 'cathedral', 'shrine', 'basilica', 'pantheon', 'temple hall', 'altar room'],
-        sights: [
-            'monolithic statues of forgotten deities encrusted with river silt',
-            'faded murals depicting stellar alignments and grand sacrifices',
-            'ceremonial altars worn smooth by centuries of offerings',
-            'strange, glowing glyphs pulsing slowly under layers of wet moss',
-            'bronze bowls filled with ancient, petrified offerings of fruit',
-            'shattered stained-glass windows representing sky deities'
-        ],
-        sounds: [
-            'the distant drip of water through cracked ceilings', 'a strange, vibrating hum from the stone altars', 
-            'the rustle of river silt settling on the flagstones', 'a ghostly chorus of low-frequency chords'
-        ],
-        smells: ['stagnant water, river weed, and damp limestone', 'ancient, fossilized frankincense resin', 'the metallic tang of old copper fixtures', 'sweet, heavy ceremonial oils'],
-        secrets: [
-            'a pressure plate beneath the offering basin', 'a reflection puzzle using the sun or moon alignments', 
-            'a secret compartment beneath the main altar containing relics', 'a false wall that slides open when a specific hymn is played'
-        ]
+        adj1: ['sunken', 'sacred', 'blasphemous', 'silt-smothered', 'monumental', 'algae-draped', 'revered', 'forgotten', 'hieroglyphic', 'consecrated'],
+        adj2: ['heretical', 'monolithic', 'gilded', 'ancient', 'sacrosanct', 'hallowed', 'unearthly', 'ruined', 'vaulted', 'mystical'],
+        noun1: ['divine', 'forgotten', 'sacred', 'ruined', 'lost', 'imperial', 'sunken', 'blighted', 'ancient', 'stellar'],
+        noun2: ['sanctuary', 'ziggurat', 'cathedral', 'shrine', 'basilica', 'pantheon', 'temple', 'altar', 'chapel', 'dome'],
+        sight1: ['monolithic stone statues', 'faded colored murals', 'smooth ceremonial altars', 'glowing magical glyphs', 'bronze offering bowls', 'shattered stained glass'],
+        sight2: ['encrusted with river silt', 'depicting stellar alignments', 'worn by centuries of use', 'pulsing under wet moss', 'filled with petrified fruit', 'representing sky deities'],
+        sound1: ['the distant drip', 'a strange hum', 'the quiet settling', 'a ghostly chorus'],
+        sound2: ['through cracked ceilings', 'from the stone altars', 'of silt on flagstones', 'of low-frequency chords'],
+        smell1: ['stagnant river weed', 'fossilized frankincense', 'old copper fixtures', 'heavy ceremonial oils'],
+        smell2: ['and damp limestone rock', 'burning without smoke', 'tasting of metallic rust', 'scenting the humid air'],
+        secret1: ['a stone pressure plate', 'a solar reflection mirror', 'a secret compartment', 'a sliding false wall', 'a hollow idol base', 'a loose altar stone', 'a hidden wall alcove', 'a rotating column'],
+        secret2: ['beneath the offering basin', 'using light alignments', 'beneath the main altar', 'opened by a musical chord', 'containing ancient scriptures', 'revealing a ritual dagger', 'hiding a golden goblet', 'opening a passage below']
     },
     mine: {
-        adj: [
-            'rickety', 'flooded', 'shored-up', 'collapsed', 'unstable', 'vein-rich', 'abyssal', 'deep-shaft', 'rust-eaten',
-            'unmapped', 'abandoned', 'barren', 'dreaded'
-        ],
-        nouns: ['excavation site', 'mine shaft', 'quarry', 'delve', 'tunnel network', 'ore-works', 'shaft-grid'],
-        sights: [
-            'rotting wooden struts holding back tons of loose granite',
-            'abandoned ore carts derailed and rusting on iron tracks',
-            'deep, vertical shafts plunging into absolute darkness',
-            'glimmering veins of pyrite or copper tracing the rocky walls',
-            'discarded iron picks and leather helmets half-buried in scree',
-            'a crude hoisting engine with frayed ropes and rusted pulleys'
-        ],
-        sounds: [
-            'the terrifying groan of settling timbers', 'faint, echoes of picking in the distance', 
-            'the splash of water deep in a flooded shaft', 'the rattle of loose pebbles down a vertical drop'
-        ],
-        smells: ['damp coal, wet earth, and moldy pine timbers', 'the metallic bite of iron ore and rust', 'stagnant pool water', 'the bitter smell of blasting dust'],
-        secrets: [
-            'a hidden stash of dynamite or mining tools', 'a stable side-tunnel bypassed by the main shaft', 
-            'an unmapped vein of silver behind a loose rockface', 'a miner\'s hidden diary details structural faults'
-        ]
+        adj1: ['rickety', 'flooded', 'shored-up', 'collapsed', 'unstable', 'vein-rich', 'abyssal', 'deep-shaft', 'rust-eaten', 'unmapped'],
+        adj2: ['abandoned', 'barren', 'dreaded', 'dark', 'stifling', 'dusty', 'hollow', 'unsafe', 'forgotten', 'rich'],
+        noun1: ['underground', 'deep-earth', 'abandoned', 'collapsed', 'rich-ore', 'royal', 'forgotten', 'flooded', 'dwarven', 'unsafe'],
+        noun2: ['excavation', 'shaft', 'quarry', 'delve', 'tunnel', 'works', 'grid', 'mine', 'pit', 'chamber'],
+        sight1: ['rotting wooden struts', 'derailed ore carts', 'deep vertical shafts', 'glimmering pyrite veins', 'discarded iron picks', 'crude hoisting engines'],
+        sight2: ['holding back loose stone', 'rusting on iron tracks', 'plunging into darkness', 'tracing the rocky walls', 'half-buried in scree piles', 'fitted with frayed ropes'],
+        sound1: ['the terrifying groan', 'faint hollow echoes', 'the distant splash', 'the sudden rattle'],
+        sound2: ['of settling heavy timbers', 'of picks hitting stone', 'of water in the depths', 'of loose falling pebbles'],
+        smell1: ['damp coal dust', 'metallic iron rust', 'stagnant pool mold', 'bitter blasting powder'],
+        smell2: ['and wet pine wood', 'clinging to the air', 'coating the rock walls', 'lingering in the shafts'],
+        secret1: ['a hidden dynamite box', 'a stable side tunnel', 'an unmapped vein', 'a miner\'s diary cache', 'a loose rock face', 'a hollow support beam', 'a hidden floor grate', 'a steel lockbox'],
+        secret2: ['containing blasting tools', 'bypassing the main collapse', 'of pure silver ore', 'detailing structural faults', 'concealing a dwarf skeleton', 'holding emergency rations', 'leading to a lower level', 'stuffed with gold nuggets']
     },
     tower: {
-        adj: [
-            'shattered', 'sky-piercing', 'toppled', 'magical', 'arcane', 'astrological', 'warded', 'gilded', 'ruined',
-            'weather-beaten', 'isolated', 'resonant', 'tilted'
-        ],
-        nouns: ['spire', 'turret', 'observatory', 'wizard tower', 'arcane column', 'monolith', 'minaret'],
-        sights: [
-            'a spiral staircase hugging the outer wall, ending in open sky',
-            'floating pieces of masonry suspended in static arcane fields',
-            'shattered alembics and crystal glass littering the study floors',
-            'runic circles burned into the floor tiles, still radiating soft light',
-            'shelves of calcified spell scrolls that crumble at a touch',
-            'a massive brass astrolabe pointing at a blank spot in the ceiling'
-        ],
-        sounds: [
-            'the high-pitched hum of magical static', 'pages of old spellbooks fluttering in the wind', 
-            'the chime of invisible glass bells', 'the low whine of a localized gravity well'
-        ],
-        smells: ['burned ozone, dry parchment, and chemical salts', 'sweet lavender water and old dust', 'the metallic smell of quicksilver', 'charred sulfur and wax'],
-        secrets: [
-            'a levitation circle activated by speaking the right word', 'a hidden compartment in a hollow table leg', 
-            'a telescope that reveals constellations not present in the sky', 'a scroll containing an ancient word of command'
-        ]
+        adj1: ['shattered', 'sky-piercing', 'toppled', 'magical', 'arcane', 'astrological', 'warded', 'gilded', 'ruined', 'weather-beaten'],
+        adj2: ['isolated', 'resonant', 'tilted', 'looming', 'ancient', 'forgotten', 'spectral', 'towering', 'glowing', 'silent'],
+        noun1: ['wizard', 'arcane', 'astrological', 'imperial', 'forgotten', 'shattered', 'floating', 'royal', 'stellar', 'sigil-marked'],
+        noun2: ['spire', 'turret', 'observatory', 'tower', 'column', 'monolith', 'minaret', 'keep', 'study', 'pinnacle'],
+        sight1: ['spiral stone staircases', 'floating masonry pieces', 'shattered crystal alembics', 'runic summoning circles', 'shelves of spell scrolls', 'massive brass astrolabes'],
+        sight2: ['ending in the open sky', 'suspended in static fields', 'littering the study floors', 'radiating a soft light', 'crumbling at a light touch', 'pointing at a blank ceiling'],
+        sound1: ['the high-pitched hum', 'pages of spellbooks', 'the constant chime', 'the low rhythmic whine'],
+        sound2: ['of magical static energy', 'fluttering in the wind', 'of invisible glass bells', 'of a gravity well'],
+        smell1: ['burned ozone gas', 'sweet lavender water', 'metallic quicksilver', 'charred sulfur wax'],
+        smell2: ['and chemical salts', 'clinging to old dust', 'spilled on the floorboards', 'hanging in the study'],
+        secret1: ['a levitation circle', 'a hidden table drawer', 'a brass telescope', 'a command word scroll', 'a false book lever', 'a hidden wall safe', 'a loose floor tile', 'a hollow stone pillar'],
+        secret2: ['activated by a command', 'hidden in a hollow leg', 'revealing invisible stars', 'tucked inside a grimoire', 'opening a revolving wall', 'containing spell scrolls', 'covering an arcane focus', 'housing a pocket dimension']
     },
     ruins: {
-        adj: [
-            'ivy-strangled', 'overgrown', 'weathered', 'abandoned', 'hollowed-out', 'haunted', 'skeletal', 'scattered',
-            'moss-covered', 'ancient', 'crumbling', 'forgotten'
-        ],
-        nouns: ['hamlet', 'manor', 'settlement', 'colony ruins', 'township', 'plaza', 'estate'],
-        sights: [
-            'stone hearths standing solitary without their wooden houses',
-            'abandoned tools and half-eaten meals fossilized under dirt',
-            'streets paved with cobbles, now split by massive tree roots',
-            'shattered wells choked with weeds and old pottery fragments',
-            'a stone monument dedicated to a forgotten victory, split in two',
-            'hollow window frames looking out like empty eyes'
-        ],
-        sounds: [
-            'the sigh of wind through empty door frames', 'the skittering of small animals nesting in the masonry', 
-            'a faint echo of children playing, gone in a flash', 'the rustle of wild vines against stone'
-        ],
-        smells: ['wet moss, wild ivy, and decaying leaves', 'damp wood ash and forest humus', 'sweet wild berries growing over ruins', 'decayed thatch and wet sod'],
-        secrets: [
-            'a bricked-up cellar door hidden under ivy', 'a cache of gold coins buried beneath the central hearth', 
-            'a diary detailing the final night before everyone fled', 'a hollow stone in the wall containing a family heirloom'
-        ]
+        adj1: ['ivy-strangled', 'overgrown', 'weathered', 'abandoned', 'hollowed-out', 'haunted', 'skeletal', 'scattered', 'moss-covered', 'ancient'],
+        adj2: ['crumbling', 'forgotten', 'decayed', 'silent', 'desolate', 'ruined', 'tumbledown', 'shattered', 'dilapidated', 'wild'],
+        noun1: ['abandoned', 'ruined', 'lost', 'overgrown', 'forgotten', 'colonial', 'ancient', 'manorial', 'spectral', 'shattered'],
+        noun2: ['hamlet', 'manor', 'settlement', 'ruins', 'township', 'plaza', 'estate', 'village', 'hall', 'colony'],
+        sight1: ['stone hearth chimneys', 'abandoned iron tools', 'cobbled streets', 'shattered water wells', 'split stone monuments', 'hollow window frames'],
+        sight2: ['standing without houses', 'fossilized under dirt', 'split by massive roots', 'choked with wild weeds', 'dedicated to old victories', 'looking out like empty eyes'],
+        sound1: ['the sigh of wind', 'the skittering noise', 'a faint echo', 'the constant rustle'],
+        sound2: ['through empty doors', 'of nesting small animals', 'of playing children', 'of wild ivy leaves'],
+        smell1: ['wet green moss', 'damp wood ash', 'sweet wild berries', 'decayed thatch grass'],
+        smell2: ['and decaying leaves', 'and forest humus soil', 'growing over the stones', 'mixed with wet sod mud'],
+        secret1: ['a bricked-up cellar', 'a buried iron chest', 'a traveler\'s diary', 'a hollow stone cavity', 'a false well bottom', 'a loose hearth stone', 'a hidden wall niche', 'a hollow tree trunk'],
+        secret2: ['hidden beneath wild ivy', 'beneath the central hearth', 'detailing the final night', 'containing family gold', 'leading to a root cellar', 'opening a lockbox space', 'holding an old silver ring', 'housing a cache of arrows']
     },
     shrine: {
-        adj: [
-            'sacred', 'pristine', 'elemental', 'revered', 'weather-worn', 'quiet', 'solitary', 'humming',
-            'blessed', 'isolated', 'mystical', 'untouched'
-        ],
-        nouns: ['sanctuary', 'shrine', 'altar', 'monument', 'stele', 'statuary', 'pillar'],
-        sights: [
-            'an alcove containing a clean stone basin filled with fresh water',
-            'thousands of small bronze coins thrown around an elemental stone',
-            'glowing incense burners still warm despite decades of abandonment',
-            'a statue with eyes of polished opal looking toward the rising sun',
-            'fresh wreaths of mountain flowers replaced by an unknown traveler',
-            'vibrant silk ribbons tied to nearby branches, snapping in the wind'
-        ],
-        sounds: [
-            'the gentle crackle of eternal blue flame', 'a constant, musical wind chime effect', 
-            'absolute silence, as if the wind itself refuses to blow', 'a soft resonance like a crystal bowl being struck'
-        ],
-        smells: ['myrrh, pine needles, and fresh ozone', 'sandalwood and mountain snow', 'the sweet smell of wildflowers', 'pure fresh spring water'],
-        secrets: [
-            'a blessing that guards travelers from harsh weather', 'a hollow space behind the icon containing ancient scriptures', 
-            'a fountain that cleanses poison when activated with a coin', 'an alignment trigger that activates when a sunbeam hits the opal eyes'
-        ]
+        adj1: ['sacred', 'pristine', 'elemental', 'revered', 'weather-worn', 'quiet', 'solitary', 'humming', 'blessed', 'isolated'],
+        adj2: ['mystical', 'untouched', 'hallowed', 'glowing', 'silent', 'ancient', 'peaceful', 'forgotten', 'pristine', 'stellar'],
+        noun1: ['elemental', 'divine', 'sacred', 'forgotten', 'shrine', 'altar', 'monument', 'sanctuary', 'stele', 'statuary'],
+        noun2: ['altar', 'shrine', 'monument', 'stele', 'statuary', 'pillar', 'basin', 'alcove', 'niche', 'stone'],
+        sight1: ['clean stone basins', 'thousands of bronze coins', 'glowing incense burners', 'polished opal statues', 'fresh flower wreaths', 'vibrant silk ribbons'],
+        sight2: ['filled with fresh water', 'thrown around the stone', 'still warm to the touch', 'looking toward the sun', 'left by unknown travelers', 'tied to nearby branches'],
+        sound1: ['the gentle crackle', 'a constant chime', 'absolute silent air', 'a soft resonance'],
+        sound2: ['of eternal blue flames', 'like wind in glass', 'as if wind is banned', 'like struck crystal bowls'],
+        smell1: ['pine and myrrh', 'sandalwood oil', 'sweet wildflowers', 'fresh ozone scent'],
+        smell2: ['and clean mountain snow', 'burning on the altar', 'filling the quiet glade', 'rising from the spring'],
+        secret1: ['a divine blessing', 'a hollow space', 'a purifying fountain', 'an alignment trigger', 'a hidden floor grate', 'a sliding stone step', 'a loose wall panel', 'a hollow bronze icon'],
+        secret2: ['guarding against storms', 'containing old scriptures', 'cleansing all poisons', 'activated by sunbeams', 'holding a silver chalice', 'revealing a healing potion', 'hiding a scroll of protection', 'opening a path to a spring']
     },
     barrow: {
-        adj: [
-            'earthen', 'ancestral', 'spectral', 'mist-wrapped', 'grassy', 'hallowed', 'megalithic', 'grim',
-            'ancient', 'forgotten', 'tomb-like'
-        ],
-        nouns: ['barrow mound', 'burial mound', 'cairn', 'tumulus', 'stone circle', 'earthwork'],
-        sights: [
-            'massive standing stones covered in crude, swirling spiral carvings',
-            'a low stone lintel opening into an earthen mound',
-            'rusted bronze swords laid neatly across flat burial stones',
-            'earthworks that form the shape of a sleeping dragon from above',
-            'cracked clay jars containing decayed grains and weapons',
-            'a slab of dark slate carved with runes representing lineage'
-        ],
-        sounds: [
-            'a deep, resonant hum when standing on the mound', 'low, guttural whispers in an old dialect', 
-            'the crunch of dry grass in the wind', 'the whistling of wind through the megaliths'
-        ],
-        smells: ['rich soil, wet sod, and wild heather', 'stagnant, earth-locked air', 'old cold copper', 'musty turf'],
-        secrets: [
-            'a ceremonial spear that can bypass spectral armor', 'a secondary tomb chamber hidden beneath the main slab', 
-            'a curse that draws lightning to anyone who steals the gold', 'a key-stone carved with the history of the interred warrior'
-        ]
+        adj1: ['earthen', 'ancestral', 'spectral', 'mist-wrapped', 'grassy', 'hallowed', 'megalithic', 'grim', 'ancient', 'forgotten'],
+        adj2: ['tomb-like', 'barrow-cold', 'sacred', 'overgrown', 'silent', 'dread-filled', 'hollow', 'stony', 'weathered', 'grim'],
+        noun1: ['tribal', 'warrior', 'royal', 'ancestral', 'forgotten', 'ancient', 'megalithic', 'earthen', 'spectral', 'grim'],
+        noun2: ['barrow mound', 'burial mound', 'cairn', 'tumulus', 'stone circle', 'earthwork', 'tomb', 'slab', 'grave', 'cist'],
+        sight1: ['massive standing stones', 'low stone lintels', 'rusted bronze swords', 'sleeping dragon earthworks', 'cracked clay jars', 'dark slate panels'],
+        sight2: ['covered in spiral carvings', 'opening into the mound', 'laid across burial stones', 'viewed from high above', 'containing decayed grains', 'carved with tribal runes'],
+        sound1: ['a deep hum', 'low whispers', 'the dry crunch', 'the high whistle'],
+        sound2: ['vibrating in the ground', 'in an ancient dialect', 'of grass in the wind', 'of wind through stones'],
+        smell1: ['rich wet soil', 'stagnant tomb air', 'old cold copper', 'musty peat moss'],
+        smell2: ['and wild heather flowers', 'locked away for ages', 'and oxidized bronze', 'filling the stone room'],
+        secret1: ['a ceremonial spear', 'a secondary chamber', 'a lightning curse', 'a key-stone map', 'a loose stone slab', 'a hollow cairn rock', 'a hidden earth vault', 'a bronze lockbox'],
+        secret2: ['bypassing spectral armor', 'beneath the main slab', 'aimed at gold thieves', 'showing tomb locations', 'covering a gold crown', 'containing a runic ring', 'holding ancient jewelry', 'opening a weapon cache']
     },
     shipwreck: {
-        adj: [
-            'barnacle-encrusted', 'wrecked', 'waterlogged', 'shattered', 'sunken', 'rusting', 'haunted', 'tangled',
-            'decayed', 'deep-sea', 'reef-locked'
-        ],
-        nouns: ['hulk', 'wreckage', 'galleon', 'ruined vessel', 'keel skeleton', 'smuggler brig'],
-        sights: [
-            'ribs of oak timbers protruding from the sand like a sea monster skeleton',
-            'rusted iron anchors draped in thick sheets of kelp',
-            'shattered cargo crates spilling decayed porcelain and glass',
-            'a bronze figurehead looking upward through the green water',
-            'the ship\'s bell partially buried in sand, encrusted with coral',
-            'torn canvases fluttering in the underwater currents'
-        ],
-        sounds: [
-            'the creak of waterlogged timbers in the current', 'bubbles rising from iron cavities', 
-            'the metallic clink of chains in the surf', 'the low hum of tides passing through the hull'
-        ],
-        smells: ['brine, kelp, and rotting fish', 'salt-cured wood and tar', 'rust and wet sand', 'decayed fish scales'],
-        secrets: [
-            'a lockbox in the captain\'s cabin with a secret drawer', 'a hidden compartment in the dry hold', 
-            'an ancient navigation chart showing a mythical continent', 'the ship log detailing the crew\'s final, mad hours'
-        ]
+        adj1: ['barnacle-encrusted', 'wrecked', 'waterlogged', 'shattered', 'sunken', 'rusting', 'haunted', 'tangled', 'decayed', 'deep-sea'],
+        adj2: ['reef-locked', 'salt-cured', 'forgotten', 'broken', 'ruined', 'barnacled', 'silent', 'briny', 'drowned', 'shattered'],
+        noun1: ['merchant', 'pirate', 'royal', 'smuggler', 'sunken', 'shattered', 'ancient', 'naval', 'ruined', 'ghost'],
+        noun2: ['hulk', 'wreckage', 'galleon', 'vessel', 'skeleton', 'brig', 'frigate', 'clipper', 'keel', 'ship'],
+        sight1: ['ribs of oak timbers', 'rusted iron anchors', 'shattered cargo crates', 'bronze figureheads', 'ship bells', 'torn canvas flags'],
+        sight2: ['protruding from the sand', 'draped in sheets of kelp', 'spilling old glass wares', 'looking up through water', 'encrusted with green coral', 'fluttering in the current'],
+        sound1: ['the creak of wood', 'bubbles rising slowly', 'the metallic clink', 'the low tide hum'],
+        sound2: ['in the ocean current', 'from rusted iron hulls', 'of chains in the surf', 'through open gunports'],
+        smell1: ['brine and kelp', 'salt-cured tar', 'rust and wet sand', 'rotting sea weed'],
+        smell2: ['and decaying fish scales', 'clinging to the timbers', 'released by the waves', 'filling the damp hold'],
+        secret1: ['a captain\'s cabin box', 'a hidden hold cavity', 'an ancient sea chart', 'the final logbook', 'a hollow timber beam', 'a loose deck plank', 'a hidden copper key', 'a steel strongbox'],
+        secret2: ['containing a gold spyglass', 'stuffed with exotic goods', 'showing mythical islands', 'detailing a final mutiny', 'holding a bag of pearls', 'opening a weapon stash', 'found in a shark skull', 'sealed with lead wax']
     },
     labyrinth: {
-        adj: [
-            'impossible', 'geometric', 'minotaur-haunted', 'carved', 'confusing', 'endless', 'symmetrical', 'daedalian',
-            'labyrinthine', 'sterile', 'dusty'
-        ],
-        nouns: ['maze', 'labyrinth', 'corridor grid', 'stone puzzle', 'maze hall'],
-        sights: [
-            'perfectly smooth granite walls rising fifteen feet high',
-            'carved arrows pointing in confusing directions on the walls',
-            'mysterious blood trails that suddenly vanish at dead ends',
-            'overhead mirrors showing the maze layout but distorted',
-            'bones of previous adventurers clutching drawing utensils',
-            'walls that show zero seams or tooling marks, as if grown'
-        ],
-        sounds: [
-            'the echo of your own footsteps returning at an odd delay', 'a heavy grinding noise as walls shift in the distance', 
-            'a low, rhythmic breathing around the corner', 'the click of shifting floor tiles'
-        ],
-        smells: ['clean limestone dust and stone grease', 'the scent of wild thyme growing in wall cracks', 'the distinct smell of beast den mud', 'cold granite and damp grease'],
-        secrets: [
-            'a pattern of tiles that indicates the correct path', 'a hidden alcove where the architect left their notes', 
-            'a central pillar that opens when a blood offering is made', 'a trapdoor that leads directly to the core machinery'
-        ]
+        adj1: ['impossible', 'geometric', 'minotaur-haunted', 'carved', 'confusing', 'endless', 'symmetrical', 'daedalian', 'labyrinthine', 'sterile'],
+        adj2: ['dusty', 'complex', 'winding', 'shifting', 'puzzling', 'ancient', 'hollow', 'silent', 'monolithic', 'smooth'],
+        noun1: ['architectural', 'stone-carved', 'monolithic', 'geometric', 'ancient', 'unmapped', 'labyrinthine', 'shifting', 'forgotten', 'daedalian'],
+        noun2: ['maze', 'labyrinth', 'grid', 'puzzle', 'network', 'corridors', 'halls', 'paths', 'dead-ends', 'structure'],
+        sight1: ['smooth granite walls', 'carved wall arrows', 'mysterious blood trails', 'overhead mirror plates', 'bones of past delvers', 'seamless stone joins'],
+        sight2: ['rising fifteen feet high', 'pointing in circles', 'vanishing at dead ends', 'showing distorted layouts', 'clutching drawing tools', 'grown without any seams'],
+        sound1: ['the delayed echo', 'heavy stone grinding', 'a low breathing', 'the metallic click'],
+        sound2: ['of your own footsteps', 'of shifting wall blocks', 'around the dark corner', 'of pressure floor tiles'],
+        smell1: ['clean limestone dust', 'wild thyme herbs', 'beast den mud', 'cold granite oil'],
+        smell2: ['and stone grease lubricant', 'growing in wall cracks', 'clinging to the floor', 'hanging in the corridors'],
+        secret1: ['a wall tile pattern', 'an architect\'s notes cache', 'a central pillar altar', 'a hidden ceiling hatch', 'a loose corner block', 'a rotating statue guide', 'a false wall panel', 'a pressure-plate map'],
+        secret2: ['indicating the correct path', 'hidden in a wall pocket', 'requiring a blood drop', 'leading to the core rooms', 'revealing a map scrolls', 'pointing to the exit path', 'hiding a master crystal', 'showing the trap triggers']
     },
     outpost: {
-        adj: [
-            'forgotten', 'barricaded', 'isolated', 'tactical', 'weather-beaten', 'strategic', 'abandoned',
-            'fortified', 'decayed', 'border-line'
-        ],
-        nouns: ['watchpost', 'redoubt', 'blockhouse', 'outpost', 'palisade', 'rampart'],
-        sights: [
-            'a rotting wooden palisade reinforced with dry-stone walls',
-            'an empty watch platform looking out over the trade route',
-            'abandoned bedrolls and tables with dice left on them',
-            'iron braziers containing cold ash and half-burnt wood',
-            'rusted signal mirrors mounted on pivoting tripods',
-            'a supply registry book showing shipments that never arrived'
-        ],
-        sounds: [
-            'the whistling of wind through the watchtower gaps', 'the creak of a swinging gate on a rusted hinge', 
-            'small pebbles falling from crumbling walls', 'the rhythmic clink of a loose flagpole cable'
-        ],
-        smells: ['smoke, dry pine, and old salt pork', 'musty blankets and grease', 'the smell of wet horse hair', 'old oil and charred wood'],
-        secrets: [
-            'a floorboard containing emergency rations and gold', 'a map of local bandit camps hidden in a hollow log', 
-            'a signal mirror setup pointing to the distant capital', 'a cipher key hidden inside the hollow hilt of a training sword'
-        ]
+        adj1: ['forgotten', 'barricaded', 'isolated', 'tactical', 'weather-beaten', 'strategic', 'abandoned', 'fortified', 'decayed', 'border-line'],
+        adj2: ['lonely', 'rugged', 'crenellated', 'shabby', 'military', 'grim', 'silent', 'wind-swept', 'cold', 'stout'],
+        noun1: ['frontier', 'border', 'military', 'abandoned', 'strategic', 'scout', 'watch', 'fortified', 'royal', 'desert'],
+        noun2: ['watchpost', 'redoubt', 'blockhouse', 'outpost', 'palisade', 'rampart', 'garrison', 'fort', 'station', 'tower'],
+        sight1: ['rotting wooden palisades', 'empty watch platforms', 'abandoned bedroll layouts', 'cold ash braziers', 'signal mirror tripods', 'military registry books'],
+        sight2: ['reinforced with dry stone', 'looking over trade routes', 'littered with game dice', 'holding half-burnt wood', 'pointing to the horizon', 'showing missed shipments'],
+        sound1: ['the whistling wind', 'a creaking gate', 'pebbles falling down', 'the rhythmic clinking'],
+        sound2: ['through tower gaps', 'on rusted iron hinges', 'from crumbling walls', 'of a loose flagpole cable'],
+        smell1: ['wood smoke and pork', 'musty blankets grease', 'wet horse hair', 'old oil lamp soot'],
+        smell2: ['and dry pine timber', 'clinging to the barracks', 'filling the stables', 'lingering in the air'],
+        secret1: ['a loose floorboard stash', 'a hidden maps cache', 'a signal mirror code', 'a training sword hilt', 'a hollow wall log', 'a false drawer bottom', 'a hidden wall stone', 'a steel ammunition case'],
+        secret2: ['holding emergency rations', 'showing regional bandit camps', 'pointing to the capital', 'containing a cipher sheet', 'revealing a gold pouch', 'hiding patrol schedules', 'opening a key compartment', 'containing healing potions']
     },
     crystal_cave: {
-        adj: [
-            'resonant', 'blazing', 'prismatic', 'humming', 'magical', 'geode-like', 'vitreous', 'luminous',
-            'mana-soaked', 'shimmering'
-        ],
-        nouns: ['geode cavern', 'crystal vault', 'prismatic rift', 'shard cavern', 'crystal hollow'],
-        sights: [
-            'giant, purple crystals jutting from the floor like columns',
-            'walls that reflect light in thousands of rainbow patterns',
-            'fine dust that sparkles like stars when disturbed',
-            'pools of liquid magic glowing with a soft, pink light',
-            'clusters of raw crystal shards growing over petrified wood',
-            'a crystal matrix that mirrors your movements with a slight delay'
-        ],
-        sounds: [
-            'a musical, chime-like vibration echoing constantly', 'the high-pitched hum of raw mana charging the air', 
-            'crystalline shards breaking underfoot with a glass ping', 'a delicate chiming like wind in glass rods'
-        ],
-        smells: ['burning ozone, sweet rosewater, and mineral dust', 'the smell of fresh rain after lightning', 'clean ice', 'charged static and mint'],
-        secrets: [
-            'a crystal that absorbs and releases magical light', 'a focal node that can recharge spell slots', 
-            'a cluster of explosive mana shards', 'a sound puzzle where striking crystals in sequence opens a path'
-        ]
+        adj1: ['resonant', 'blazing', 'prismatic', 'humming', 'magical', 'geode-like', 'vitreous', 'luminous', 'mana-soaked', 'shimmering'],
+        adj2: ['crystalline', 'vibrant', 'pulsing', 'glassy', 'charged', 'resonant', 'beautiful', 'magical', 'cold', 'glowing'],
+        noun1: ['crystalline', 'geode', 'prismatic', 'mana-charged', 'resonant', 'elemental', 'glowing', 'magic', 'deep-earth', 'sparkling'],
+        noun2: ['cavern', 'vault', 'grotto', 'hollow', 'rift', 'cave', 'chamber', 'pocket', 'vein', 'geode'],
+        sight1: ['giant purple crystals', 'rainbow reflection walls', 'sparkling mineral dust', 'pink liquid magic pools', 'crystal clusters on wood', 'shifting matrix crystals'],
+        sight2: ['jutting like giant pillars', 'reflecting light patterns', 'floating in the calm air', 'glowing with a soft light', 'growing over petrified log', 'mirroring your movements'],
+        sound1: ['a musical vibration', 'the high-pitched hum', 'crystal shards breaking', 'a delicate chiming'],
+        sound2: ['echoing through the vault', 'of raw mana static', 'underfoot with a glass ping', 'in the light drafts'],
+        smell1: ['ozone and rosewater', 'fresh rain scent', 'cold mineral dust', 'charged static air'],
+        smell2: ['and sweet chemical salts', 'after a lightning strike', 'clinging to the crystals', 'mixed with wild mint'],
+        secret1: ['an energy-absorbing crystal', 'a ley-focus node', 'mutated mana shards', 'a sound crystal puzzle', 'a hollow geode stone', 'a loose crystal cluster', 'a glowing wall pocket', 'a hidden crystal key'],
+        secret2: ['releasing light on command', 'recharging magic spell slots', 'exploding when struck hard', 'opening a hidden pathway', 'containing raw diamond dust', 'hiding a scroll of light', 'revealing a magical ring', 'unlocking a stone chest']
     },
     fey_circle: {
-        adj: [
-            'sparkling', 'bewildering', 'fey-kissed', 'glowing', 'fungal', 'verdant', 'dreamlike', 'illusory',
-            'enchanted', 'moss-woven'
-        ],
-        nouns: ['fey ring', 'fairy circle', 'mushroom node', 'druidic glade', 'willow grove'],
-        sights: [
-            'a perfect circle of towering, bioluminescent purple mushrooms',
-            'sparkling spores floating like fireflies in the dim light',
-            'flowers that bloom and close in seconds when approached',
-            'a mist that shimmers with rainbow colors on the grass',
-            'an ancient elder tree with roots forming a natural archway',
-            'butterfly wings caught in glowing dew webs'
-        ],
-        sounds: [
-            'faint, distant laughter and stringed music', 'the rustle of leaves that sound like whispers', 
-            'the hum of glowing fairy dust', 'the chiming of bluebells in a light draft'
-        ],
-        smells: ['sweet nectar, damp moss, and magical honeysuckle', 'earthy mushrooms and wet soil', 'fresh mint and pine', 'wild cider and clover'],
-        secrets: [
-            'a path that leads straight into the Feywild at twilight', 'mushrooms that grant temporary levitation if eaten', 
-            'a pool that reflects a person\'s true desires', 'a fairy gift that turns to dry leaves if taken out of the glade'
-        ]
+        adj1: ['sparkling', 'bewildering', 'fey-kissed', 'glowing', 'fungal', 'verdant', 'dreamlike', 'illusory', 'enchanted', 'moss-woven'],
+        adj2: ['bewitching', 'fairy-like', 'verdant', 'misty', 'shimmering', 'dreamy', 'lush', 'wild', 'overgrown', 'beautiful'],
+        noun1: ['fairy', 'druidic', 'fey-realm', 'mushroom', 'verdant', 'mystical', 'enchanted', 'whispering', 'glade', 'willow'],
+        noun2: ['circle', 'ring', 'glade', 'grove', 'node', 'hollow', 'meadow', 'pool', 'circle', 'circle'],
+        sight1: ['bioluminescent mushrooms', 'floating glowing spores', 'rapidly blooming flowers', 'rainbow-shimmering mist', 'natural root archways', 'dew-covered webs'],
+        sight2: ['forming a perfect ring', 'moving like fireflies', 'closing when approached', 'clinging to the grass', 'made of ancient elder wood', 'trapping butterfly wings'],
+        sound1: ['faint distant music', 'whispering leaf rustles', 'fairy dust hums', 'bluebell chimes'],
+        sound2: ['of unseen stringed harps', 'sounding like voices', 'vibrating in the air', 'ringing in light drafts'],
+        smell1: ['nectar and honeysuckle', 'earthy mushroom peat', 'fresh mint pine', 'wild clover cider'],
+        smell2: ['and damp green forest moss', 'mixed with wet humus soil', 'scenting the warm glade', 'clinging to the air'],
+        secret1: ['a twilight fey path', 'a levitation mushroom', 'a desire-reflecting pool', 'a fragile fey gift', 'a hidden tree hollow', 'a rotating flower step', 'a loose root panel', 'a hollow mushroom stem'],
+        secret2: ['leading into the Feywild', 'granting temporary flight', 'showing your true dreams', 'turning to dry leaves outside', 'holding a silver lute', 'revealing fairy gold', 'hiding an elven ring', 'housing a friendly sprite']
     },
     astral_rift: {
-        adj: [
-            'cosmic', 'shimmering', 'rifted', 'alien', 'temporal', 'void-touched', 'stellar', 'gravitational',
-            'extra-dimensional', 'abyssal'
-        ],
-        nouns: ['astral tear', 'void rift', 'space-time tear', 'cosmic anchor', 'dimension fold'],
-        sights: [
-            'a tear in the air showing stars and swirling nebulae',
-            'objects that slowly drift upward in low gravity pockets',
-            'shattered void glass floating in concentric rings',
-            'shadows that cast in multiple directions from a single light',
-            'glowing stardust drifting like smoke through vertical splits',
-            'floating geometric stones orbiting the central tear'
-        ],
-        sounds: [
-            'a deep, roaring vacuum noise that doesn\'t move the air', 'whispers in an alien tongue that bypass the ears', 
-            'the crackle of raw dimensional fabric tearing', 'the heavy, slow beat of a cosmic pulse'
-        ],
-        smells: ['cold metal, void dust, and burning stardust', 'nothing at all—a complete absence of scent', 'ozone', 'cosmic static and ozone'],
-        secrets: [
-            'a portal that allows looking brief distances into the future', 'a relic of an alien civilization buried nearby', 
-            'a patch of ground where gravity is completely reversed', 'an astral node that grants temporary telepathic sight'
-        ]
+        adj1: ['cosmic', 'shimmering', 'rifted', 'alien', 'temporal', 'void-touched', 'stellar', 'gravitational', 'extra-dimensional', 'abyssal'],
+        adj2: ['void', 'cosmic', 'stellar', 'rifted', 'alien', 'weightless', 'cold', 'glowing', 'silent', 'unearthly'],
+        noun1: ['astral', 'void', 'space-time', 'dimensional', 'cosmic', 'alien', 'stellar', 'gravitational', 'unearthly', 'rifted'],
+        noun2: ['rift', 'tear', 'anchor', 'fold', 'portal', 'void', 'crack', 'breach', 'split', 'vacuum'],
+        sight1: ['space-time tears', 'floating weightless stones', 'shattered void glass', 'multi-directional shadows', 'glowing stardust plumes', 'orbiting geometric rocks'],
+        sight2: ['showing swirling nebulae', 'drifting in gravity pockets', 'orbiting in flat rings', 'cast from one light source', 'drifting like violet smoke', 'circling the central tear'],
+        sound1: ['a deep vacuum roar', 'alien mind whispers', 'the crackle noise', 'a heavy cosmic pulse'],
+        sound2: ['that doesn\'t move the air', 'bypassing the ears directly', 'of tearing space fabric', 'beating in a slow rhythm'],
+        smell1: ['void dust metal', 'complete lack of scent', 'ozone static', 'stardust fire'],
+        smell2: ['and burning cosmic gas', 'making you feel light-headed', 'tasting of metallic copper', 'hanging in the cold vacuum'],
+        secret1: ['a time-viewing portal', 'an alien metal relic', 'a gravity-reversal zone', 'a telepathic rift node', 'a floating glass shard', 'a loose stellar block', 'a glowing void pocket', 'a hidden dimensional key'],
+        secret2: ['looking briefly into the future', 'carved with star coordinates', 'where you can walk on walls', 'granting mind-sight temporarily', 'containing cosmic energy', 'hiding a void dagger', 'revealing a stellar map', 'unlocking a floating safe']
     }
 };
+
+const POI_DICTIONARIES = {};
+for (const [key, t] of Object.entries(RAW_POI_TEMPLATES)) {
+    POI_DICTIONARIES[key] = {
+        adj: combine(t.adj1, t.adj2),
+        nouns: combine(t.noun1, t.noun2),
+        sights: combine(t.sight1, t.sight2),
+        sounds: combine(t.sound1, t.sound2),
+        smells: combine(t.smell1, t.smell2),
+        secrets: combine(t.secret1, t.secret2)
+    };
+}
 
 // Generates a sector (wilderness) description with multiple layers of randomness (at least 3 RNG moments)
 export function generateSectorDescription(rng, biome, sight, faction) {
