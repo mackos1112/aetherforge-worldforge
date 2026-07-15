@@ -285,6 +285,49 @@ export class WorldVisualizer {
                 }
             }
         }
+        // Draw smooth vector rivers
+        if (this.world.riverPaths && this.world.riverPaths.length > 0) {
+            this.ctx.strokeStyle = '#3a94b4';
+            this.ctx.lineCap = 'round';
+            this.ctx.lineJoin = 'round';
+            
+            // Adjust river width based on zoom/tile size
+            const baseWidth = Math.max(1.0, ts * 0.45);
+            
+            for (const path of this.world.riverPaths) {
+                if (path.length < 2) continue;
+                
+                this.ctx.beginPath();
+                this.ctx.lineWidth = baseWidth;
+                
+                let first = true;
+                for (let k = path.length - 1; k >= 0; k--) {
+                    const pt = path[k];
+                    const px = ox + (pt.x + 0.5) * ts;
+                    const py = oy + (pt.y + 0.5) * ts;
+                    
+                    if (!first) {
+                        const prevPt = path[k + 1];
+                        const dx = Math.abs(pt.x - prevPt.x);
+                        if (dx > W / 2) {
+                            // Toroidal map wrap safety
+                            this.ctx.stroke();
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(px, py);
+                            continue;
+                        }
+                    }
+                    
+                    if (first) {
+                        this.ctx.moveTo(px, py);
+                        first = false;
+                    } else {
+                        this.ctx.lineTo(px, py);
+                    }
+                }
+                this.ctx.stroke();
+            }
+        }
 
         // Political overlay
         if (this.showPolitical) {

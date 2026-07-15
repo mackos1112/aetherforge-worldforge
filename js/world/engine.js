@@ -44,8 +44,7 @@ export class WorldEngine {
         this.nationMap   = new Int16Array(size);
         this.riverMap    = new Uint8Array(size);
         this.lakeMap     = new Uint8Array(size);
-
-        // Fill initial nation map
+        this.riverPaths  = [];
         this.nationMap.fill(-1);
 
         // Transparent Grid Proxy: allows world.grid[y][x] to return virtual sector objects lazily
@@ -472,11 +471,20 @@ export class WorldEngine {
             if (endIdx !== -1) {
                 let curr = endIdx;
                 let pathLength = 0;
+                const pathPoints = [];
+                // Allow longer rivers on bigger maps (scale path trace guard dynamically)
+                const maxPathLength = W * H;
                 while (curr !== -1) {
                     this.riverMap[curr] = 1;
+                    const cx = curr % W;
+                    const cy = Math.floor(curr / W);
+                    pathPoints.push({ x: cx, y: cy });
                     curr = parent[curr];
                     pathLength++;
-                    if (pathLength > 1000) break;
+                    if (pathLength > maxPathLength) break;
+                }
+                if (pathPoints.length >= 2) {
+                    this.riverPaths.push(pathPoints);
                 }
             }
         }
