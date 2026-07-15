@@ -243,8 +243,7 @@ export class WorldVisualizer {
         // Topography contours
         if (this.showTopography) {
             this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
-            this.ctx.lineWidth = 1;
-            const thresholds = [0.52, 0.57, 0.62, 0.72, 0.76, 0.82, 0.88];
+            const thresholds = [0.52, 0.57, 0.62, 0.67, 0.72, 0.77, 0.82, 0.87, 0.92, 0.97];
             for (let y = 0; y < H; y++) {
                 for (let x = 0; x < W; x++) {
                     const idx = y * W + x;
@@ -409,14 +408,50 @@ export class WorldVisualizer {
 
                 // Height-based shading (hillshade)
                 const h = hMap[idx];
-                const shade = 0.75 + h * 0.5;
-                r = Math.min(255, Math.round(r * shade));
-                g = Math.min(255, Math.round(g * shade));
-                b = Math.min(255, Math.round(b * shade));
+                
+                // Calculate terrain gradient (normal vector)
+                const westTx = (tx - 1 + W) % W;
+                const eastTx = (tx + 1) % W;
+                const northTy = Math.max(0, ty - 1);
+                const southTy = Math.min(H - 1, ty + 1);
+                
+                const hWest = hMap[ty * W + westTx];
+                const hEast = hMap[ty * W + eastTx];
+                const hNorth = hMap[northTy * W + tx];
+                const hSouth = hMap[southTy * W + tx];
+                
+                // Scale factor to amplify or reduce slope impact
+                const slopeScale = 4.0; 
+                const dx = (hEast - hWest) * slopeScale;
+                const dy = (hSouth - hNorth) * slopeScale;
+                
+                // Light source from North-West (135 degrees)
+                const lx = -0.707;
+                const ly = -0.707;
+                const lz = 0.5;
+                
+                // Normal vector components: N = (-dx, -dy, 1) normalized
+                const len = Math.sqrt(dx * dx + dy * dy + 1.0);
+                const nx = -dx / len;
+                const ny = -dy / len;
+                const nz = 1.0 / len;
+                
+                // Dot product for diffuse lighting
+                 const dot = nx * lx + ny * ly + nz * lz;
+                 
+                 // Combine height coloring + directional shading (stepped 10 levels)
+                 const steps = 10;
+                 const hStepped = Math.floor(h * steps) / steps;
+                 const heightFactor = 0.5 + hStepped * 0.5;
+                 const lightFactor = Math.max(0.4, Math.min(1.6, dot * 1.5));
+                 const shade = heightFactor * lightFactor;
+                 
+                 r = Math.min(255, Math.max(0, Math.round(r * shade)));
+                g = Math.min(255, Math.max(0, Math.round(g * shade)));
+                b = Math.min(255, Math.max(0, Math.round(b * shade)));
 
                 // River tint override
                 if (rMap[idx] === 1) { r = 58; g = 148; b = 180; }
-
                 const pIdx = (iy * pw + ix) * 4;
                 data[pIdx]   = r;
                 data[pIdx+1] = g;
