@@ -377,14 +377,20 @@ export class WorldEngine {
 
     _runHydrology() {
         const W = this.width, H = this.height;
-        const dirs = [[0,1],[1,0],[0,-1],[-1,0]];
+        // Search 8 directions for more natural, diagonal flow paths
+        const dirs = [
+            [0,1],[1,0],[0,-1],[-1,0],
+            [1,1],[1,-1],[-1,1],[-1,-1]
+        ];
 
-        const numRivers = Math.floor(W * 0.08);
+        // Increase number of river spawns
+        const numRivers = Math.floor(W * 0.28);
         for (let i = 0; i < numRivers; i++) {
+            // Seed a river high up in elevation
             let rx = this.rng.int(0, W - 1);
             let ry = this.rng.int(0, H - 1);
 
-            for (let t = 0; t < 12; t++) {
+            for (let t = 0; t < 15; t++) {
                 const tx = this.rng.int(0, W - 1), ty = this.rng.int(0, H - 1);
                 if (this.heightMap[ty * W + tx] > this.heightMap[ry * W + rx]) {
                     rx = tx; ry = ty;
@@ -392,7 +398,8 @@ export class WorldEngine {
             }
 
             let steps = 0, stagnant = 0;
-            while (steps < 120 && stagnant < 4) {
+            // Allow rivers to flow longer (up to 400 steps)
+            while (steps < 400 && stagnant < 8) {
                 const sIdx = ry * W + rx;
                 const sBiome = BIOME_KEYS[this.biomeMap[sIdx]];
                 if (sBiome.includes('Ocean') || sBiome.includes('Sea')) break;
@@ -400,12 +407,21 @@ export class WorldEngine {
                 this.riverMap[sIdx] = 1;
 
                 let best = null, bestH = this.heightMap[sIdx];
+                let lowestNeighbor = null, lowestH = Infinity;
+
                 for (const [dx, dy] of dirs) {
                     const nx = (rx + dx + W) % W;
                     const ny = Math.max(0, Math.min(H - 1, ry + dy));
                     const nIdx = ny * W + nx;
-                    if (this.heightMap[nIdx] < bestH) {
-                        bestH = this.heightMap[nIdx];
+                    const hNeigh = this.heightMap[nIdx];
+
+                    if (hNeigh < lowestH) {
+                        lowestH = hNeigh;
+                        lowestNeighbor = [nx, ny];
+                    }
+
+                    if (hNeigh < this.heightMap[sIdx] && hNeigh < bestH) {
+                        bestH = hNeigh;
                         best  = [nx, ny];
                     }
                 }
@@ -413,10 +429,15 @@ export class WorldEngine {
                 if (best) {
                     [rx, ry] = best;
                     stagnant = 0;
-                } else {
-                    this.lakeMap[sIdx] = 1;
-                    this.biomeMap[sIdx] = BIOME_KEYS.indexOf(sBiome === 'Crater Lake' ? 'Crater Lake' : 'Lake');
+                } else if (lowestNeighbor) {
+                    // Hydraulic erosion: carve path through the lowest local barrier
+                    const nIdx = lowestNeighbor[1] * W + lowestNeighbor[0];
+                    // Lower the barrier so water spills over
+                    this.heightMap[nIdx] = (this.heightMap[nIdx] + this.heightMap[sIdx]) / 2;
+                    [rx, ry] = lowestNeighbor;
                     stagnant++;
+                } else {
+                    break;
                 }
                 steps++;
             }
