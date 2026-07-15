@@ -254,7 +254,9 @@ export class WorldEngine {
                 const idx = y * W + x;
                 const h = this.heightMap[idx];
                 const latDeg = ((H / 2 - y) / (H / 2)) * 90;
-                const latAbs = Math.abs(latDeg);
+                // Organic latitude warping to bend climate zones naturally
+                const latNoise = noiseT.fbm(x / W * 2.8, y / H * 2.8, 3) * 8.5;
+                const latAbs = Math.max(0, Math.min(90, Math.abs(latDeg + latNoise)));
 
                 // Temperature
                 const altCool = h > 0.5 ? (h - 0.5) * 62 : 0;
