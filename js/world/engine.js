@@ -377,69 +377,107 @@ export class WorldEngine {
 
     _runHydrology() {
         const W = this.width, H = this.height;
-        // Search 8 directions for more natural, diagonal flow paths
         const dirs = [
             [0,1],[1,0],[0,-1],[-1,0],
             [1,1],[1,-1],[-1,1],[-1,-1]
         ];
 
-        // Increase number of river spawns
-        const numRivers = Math.floor(W * 0.28);
-        for (let i = 0; i < numRivers; i++) {
-            // Seed a river high up in elevation
-            let rx = this.rng.int(0, W - 1);
-            let ry = this.rng.int(0, H - 1);
+        // 1. Gather potential high-mountain peaks/sources
+        const sources = [];
+        for (let y = 0; y < H; y++) {
+            for (let x = 0; x < W; x++) {
+                const idx = y * W + x;
+                const h = this.heightMap[idx];
+                const biome = BIOME_KEYS[this.biomeMap[idx]];
+                if (h >= 0.72 || biome === 'Mountain' || biome === 'Snowcap' || biome === 'Volcano') {
+                    sources.push({ x, y });
+                }
+            }
+        }
 
-            for (let t = 0; t < 15; t++) {
-                const tx = this.rng.int(0, W - 1), ty = this.rng.int(0, H - 1);
-                if (this.heightMap[ty * W + tx] > this.heightMap[ry * W + rx]) {
-                    rx = tx; ry = ty;
+        // Fallback if there are very few peaks
+        if (sources.length < 50) {
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    const idx = y * W + x;
+                    if (this.heightMap[idx] >= 0.60) {
+                        sources.push({ x, y });
+                    }
+                }
+            }
+        }
+
+        if (sources.length === 0) return;
+
+        // 2. Generate rivers using downhill Dijkstra routing to water bodies
+        const numRivers = Math.floor(W * 0.18);
+        for (let i = 0; i < numRivers; i++) {
+            const start = this.rng.pick(sources);
+            
+            const dist = new Float32Array(W * H).fill(Infinity);
+            const parent = new Int32Array(W * H).fill(-1);
+            
+            const queue = [];
+            const startIdx = start.y * W + start.x;
+            dist[startIdx] = 0;
+            queue.push({ x: start.x, y: start.y, idx: startIdx, cost: 0 });
+
+            let endIdx = -1;
+            
+            while (queue.length > 0) {
+                const curr = queue.shift();
+                
+                // Stop when we reach any water (ocean, sea, lake, or another river)
+                const curH = this.heightMap[curr.idx];
+                const curBiome = BIOME_KEYS[this.biomeMap[curr.idx]];
+                if (curH < 0.49 || curBiome.includes('Ocean') || curBiome.includes('Sea') || this.riverMap[curr.idx] === 1 || this.lakeMap[curr.idx] === 1) {
+                    endIdx = curr.idx;
+                    break;
+                }
+                
+                if (curr.cost > dist[curr.idx]) continue;
+
+                for (const [dx, dy] of dirs) {
+                    const nx = (curr.x + dx + W) % W;
+                    const ny = Math.max(0, Math.min(H - 1, curr.y + dy));
+                    const nIdx = ny * W + nx;
+                    const nH = this.heightMap[nIdx];
+                    
+                    const diff = nH - curH;
+                    // Steep downslope cost is extremely small, upslope cost has a massive penalty
+                    const stepCost = 1.0 + (diff > 0 ? diff * 350.0 : diff * 2.0);
+                    const nextCost = curr.cost + stepCost;
+
+                    if (nextCost < dist[nIdx]) {
+                        dist[nIdx] = nextCost;
+                        parent[nIdx] = curr.idx;
+                        
+                        // Binary insert into priority queue
+                        let l = 0, r = queue.length - 1, insertPos = queue.length;
+                        while (l <= r) {
+                            const m = (l + r) >> 1;
+                            if (queue[m].cost > nextCost) {
+                                insertPos = m;
+                                r = m - 1;
+                            } else {
+                                l = m + 1;
+                            }
+                        }
+                        queue.splice(insertPos, 0, { x: nx, y: ny, idx: nIdx, cost: nextCost });
+                    }
                 }
             }
 
-            let steps = 0, stagnant = 0;
-            // Allow rivers to flow longer (up to 400 steps)
-            while (steps < 400 && stagnant < 8) {
-                const sIdx = ry * W + rx;
-                const sBiome = BIOME_KEYS[this.biomeMap[sIdx]];
-                if (sBiome.includes('Ocean') || sBiome.includes('Sea')) break;
-
-                this.riverMap[sIdx] = 1;
-
-                let best = null, bestH = this.heightMap[sIdx];
-                let lowestNeighbor = null, lowestH = Infinity;
-
-                for (const [dx, dy] of dirs) {
-                    const nx = (rx + dx + W) % W;
-                    const ny = Math.max(0, Math.min(H - 1, ry + dy));
-                    const nIdx = ny * W + nx;
-                    const hNeigh = this.heightMap[nIdx];
-
-                    if (hNeigh < lowestH) {
-                        lowestH = hNeigh;
-                        lowestNeighbor = [nx, ny];
-                    }
-
-                    if (hNeigh < this.heightMap[sIdx] && hNeigh < bestH) {
-                        bestH = hNeigh;
-                        best  = [nx, ny];
-                    }
+            // Draw the path back to the starting peak
+            if (endIdx !== -1) {
+                let curr = endIdx;
+                let pathLength = 0;
+                while (curr !== -1) {
+                    this.riverMap[curr] = 1;
+                    curr = parent[curr];
+                    pathLength++;
+                    if (pathLength > 1000) break;
                 }
-
-                if (best) {
-                    [rx, ry] = best;
-                    stagnant = 0;
-                } else if (lowestNeighbor) {
-                    // Hydraulic erosion: carve path through the lowest local barrier
-                    const nIdx = lowestNeighbor[1] * W + lowestNeighbor[0];
-                    // Lower the barrier so water spills over
-                    this.heightMap[nIdx] = (this.heightMap[nIdx] + this.heightMap[sIdx]) / 2;
-                    [rx, ry] = lowestNeighbor;
-                    stagnant++;
-                } else {
-                    break;
-                }
-                steps++;
             }
         }
     }
