@@ -1,4 +1,5 @@
-import { RNG, GradientNoise2D, NameGen, binaryInsert } from './utils.js';
+import { RNG, GradientNoise2D, binaryInsert } from './utils.js';
+import { WorldNameGenerator } from '../names/names.js';
 import { BIOME_KEYS, BIOMES, POI_TYPES, getProceduralHooks } from './biomes.js';
 import { generatePoiDescription } from './descriptionGenerator.js';
 
@@ -25,7 +26,7 @@ export class WorldEngine {
         this.width  = W;
         this.height = sizeMode === 'custom' ? (parseInt(customH, 10) || 256) : Math.floor(W * 0.5);
 
-        this.nameGen = new NameGen(new RNG(seed + '_names'));
+        this.nameGen = new WorldNameGenerator(new RNG(seed + '_names'));
         this.nations = [];
         this.cities  = [];
         this.pois    = [];
@@ -502,13 +503,17 @@ export class WorldEngine {
         this.nations = [];
         this.citiesMap.clear();
 
+        const styles = ['elven', 'dwarven', 'norse', 'roman', 'gothic', 'eldritch'];
         for (let i = 0; i < numNations; i++) {
-            const capName = this.nameGen.capital();
+            const style = styles[i % styles.length];
+            const capName = this.nameGen.generate(style, 'city');
+            const natName = this.nameGen.generate(style, 'nation');
             this.nations.push({
-                name: this.nameGen.nation(),
+                name: natName,
                 color: palettes[i % palettes.length],
                 capital: capName,
                 id: i,
+                style: style
             });
         }
 
@@ -572,7 +577,9 @@ export class WorldEngine {
 
             if (h < 0.49 || this.citiesMap.has(`${cx},${cy}`) || ['Mountain','Snowcap','Glacier','Volcano','Lava Field','Obsidian Spireland'].includes(sBiome)) continue;
 
-            const name = this.nameGen.city();
+            const nationId = this.nationMap[idx];
+            const style = (nationId !== -1 && this.nations[nationId]) ? this.nations[nationId].style : this.rng.pick(['elven', 'dwarven', 'norse', 'roman', 'gothic']);
+            const name = this.nameGen.generate(style, 'city');
             const isCity = this.rng.next() < 0.4;
             const pop = isCity ? this.rng.int(10000, 80000) : this.rng.int(200, 3000);
             const cityObj = { name, isCapital: false, nationId: this.nationMap[idx], pop };
