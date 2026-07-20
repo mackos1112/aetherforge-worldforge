@@ -103,6 +103,9 @@ export class WorldVisualizer {
                 this._resizeCanvas();
                 this._updateInspector();
                 this._showToast('🌍 World forged — seed: ' + seed);
+            } catch (err) {
+                console.error('World forge error:', err);
+                this._showToast('⚠️ World forge error: ' + err.message);
             } finally {
                 this._hideOverlay();
             }
@@ -490,96 +493,102 @@ export class WorldVisualizer {
     }
 
     _drawMacroMagicAnomalies(ox, oy, ts, W, H) {
-        if (!this.world.anomalyEpicenters || this.world.anomalyEpicenters.length === 0) return;
+        if (!this.world || !this.world.anomalyEpicenters || this.world.anomalyEpicenters.length === 0) return;
 
         this.ctx.save();
-        const time = Date.now() * 0.002;
+        try {
+            const time = Date.now() * 0.002;
 
-        for (const epicenter of this.world.anomalyEpicenters) {
-            const px = ox + (epicenter.x + 0.5) * ts;
-            const py = oy + (epicenter.y + 0.5) * ts;
-            const radPx = Math.max(14, epicenter.radius * ts);
+            for (const epicenter of this.world.anomalyEpicenters) {
+                if (!epicenter) continue;
+                const px = ox + (epicenter.x + 0.5) * ts;
+                const py = oy + (epicenter.y + 0.5) * ts;
+                const radPx = Math.max(14, epicenter.radius * ts);
 
-            // Color palette by anomaly type
-            let colorCore = 'rgba(192, 132, 252, 0.45)';
-            let colorGlow = 'rgba(168, 85, 247, 0.22)';
-            let colorBeam = '#d8b4fe';
+                let colorCore = 'rgba(192, 132, 252, 0.45)';
+                let colorGlow = 'rgba(168, 85, 247, 0.22)';
+                let colorBeam = '#d8b4fe';
 
-            if (epicenter.type === 'Mana Wastes' || epicenter.type === 'Astral Rift') {
-                colorCore = 'rgba(56, 189, 248, 0.45)';
-                colorGlow = 'rgba(14, 165, 233, 0.22)';
-                colorBeam = '#7dd3fc';
-            } else if (epicenter.type === 'Fey Wildwood' || epicenter.type === 'Bioluminescent Jungle') {
-                colorCore = 'rgba(74, 222, 128, 0.45)';
-                colorGlow = 'rgba(34, 197, 94, 0.22)';
-                colorBeam = '#86efac';
-            } else if (epicenter.type === 'Obsidian Spireland') {
-                colorCore = 'rgba(244, 63, 94, 0.45)';
-                colorGlow = 'rgba(225, 29, 72, 0.22)';
-                colorBeam = '#fda4af';
-            }
-
-            // 1. Radial Energy Field Nebula
-            try {
-                const grad = this.ctx.createRadialGradient(px, py, radPx * 0.1, px, py, radPx * 1.5);
-                grad.addColorStop(0, colorCore);
-                grad.addColorStop(0.5, colorGlow);
-                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-
-                this.ctx.fillStyle = grad;
-                this.ctx.beginPath();
-                this.ctx.arc(px, py, radPx * 1.5, 0, Math.PI * 2);
-                this.ctx.fill();
-            } catch (e) {}
-
-            // 2. Spiraling Leyline Arcs
-            this.ctx.strokeStyle = colorBeam;
-            this.ctx.lineWidth = Math.max(1, Math.min(3, ts * 0.4));
-            this.ctx.globalAlpha = 0.7;
-
-            const numArcs = 5;
-            for (let a = 0; a < numArcs; a++) {
-                const angleOffset = (a / numArcs) * Math.PI * 2 + time * 0.5;
-                this.ctx.beginPath();
-                for (let r = 5; r <= radPx * 1.2; r += 4) {
-                    const rotAngle = angleOffset + (r / radPx) * 1.8;
-                    const ax = px + Math.cos(rotAngle) * r;
-                    const ay = py + Math.sin(rotAngle) * r;
-                    if (r === 5) this.ctx.moveTo(ax, ay);
-                    else this.ctx.lineTo(ax, ay);
+                if (epicenter.type === 'Mana Wastes' || epicenter.type === 'Astral Rift') {
+                    colorCore = 'rgba(56, 189, 248, 0.45)';
+                    colorGlow = 'rgba(14, 165, 233, 0.22)';
+                    colorBeam = '#7dd3fc';
+                } else if (epicenter.type === 'Fey Wildwood' || epicenter.type === 'Bioluminescent Jungle') {
+                    colorCore = 'rgba(74, 222, 128, 0.45)';
+                    colorGlow = 'rgba(34, 197, 94, 0.22)';
+                    colorBeam = '#86efac';
+                } else if (epicenter.type === 'Obsidian Spireland') {
+                    colorCore = 'rgba(244, 63, 94, 0.45)';
+                    colorGlow = 'rgba(225, 29, 72, 0.22)';
+                    colorBeam = '#fda4af';
                 }
-                this.ctx.stroke();
-            }
 
-            // 3. Floating Arcane Spark Particles
-            this.ctx.fillStyle = '#ffffff';
-            const numParticles = 8;
-            for (let p = 0; p < numParticles; p++) {
-                const pAngle = (p / numParticles) * Math.PI * 2 - time * 0.8 + p;
-                const pDist = (0.2 + 0.7 * Math.sin(time + p * 1.5)) * radPx;
-                const spX = px + Math.cos(pAngle) * pDist;
-                const spY = py + Math.sin(pAngle) * pDist;
-                const pSize = Math.max(1.2, Math.min(3.5, ts * 0.3));
+                // 1. Radial Energy Field Nebula
+                try {
+                    if (isFinite(px) && isFinite(py) && radPx > 0) {
+                        const grad = this.ctx.createRadialGradient(px, py, Math.max(0.1, radPx * 0.1), px, py, Math.max(1, radPx * 1.5));
+                        grad.addColorStop(0, colorCore);
+                        grad.addColorStop(0.5, colorGlow);
+                        grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-                this.ctx.beginPath();
-                this.ctx.arc(spX, spY, pSize, 0, Math.PI * 2);
-                this.ctx.fill();
-            }
+                        this.ctx.fillStyle = grad;
+                        this.ctx.beginPath();
+                        this.ctx.arc(px, py, radPx * 1.5, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                } catch (e) {}
 
-            // 4. Region Macro Label
-            if (ts >= 1.5) {
-                this.ctx.globalAlpha = 1.0;
-                this.ctx.fillStyle = colorBeam;
-                this.ctx.font = `bold ${Math.max(10, Math.min(14, ts * 1.2))}px 'Share', sans-serif`;
-                this.ctx.textAlign = 'center';
-                this.ctx.shadowColor = '#000';
-                this.ctx.shadowBlur = 6;
-                this.ctx.fillText(`⚡ ${epicenter.type} Zone`, px, py - radPx * 1.2 - 4);
-                this.ctx.shadowBlur = 0;
+                // 2. Spiraling Leyline Arcs
+                this.ctx.strokeStyle = colorBeam;
+                this.ctx.lineWidth = Math.max(1, Math.min(3, ts * 0.4));
+                this.ctx.globalAlpha = 0.7;
+
+                const numArcs = 5;
+                for (let a = 0; a < numArcs; a++) {
+                    const angleOffset = (a / numArcs) * Math.PI * 2 + time * 0.5;
+                    this.ctx.beginPath();
+                    for (let r = 5; r <= radPx * 1.2; r += 4) {
+                        const rotAngle = angleOffset + (r / radPx) * 1.8;
+                        const ax = px + Math.cos(rotAngle) * r;
+                        const ay = py + Math.sin(rotAngle) * r;
+                        if (r === 5) this.ctx.moveTo(ax, ay);
+                        else this.ctx.lineTo(ax, ay);
+                    }
+                    this.ctx.stroke();
+                }
+
+                // 3. Floating Arcane Spark Particles
+                this.ctx.fillStyle = '#ffffff';
+                const numParticles = 8;
+                for (let p = 0; p < numParticles; p++) {
+                    const pAngle = (p / numParticles) * Math.PI * 2 - time * 0.8 + p;
+                    const pDist = (0.2 + 0.7 * Math.sin(time + p * 1.5)) * radPx;
+                    const spX = px + Math.cos(pAngle) * pDist;
+                    const spY = py + Math.sin(pAngle) * pDist;
+                    const pSize = Math.max(1.2, Math.min(3.5, ts * 0.3));
+
+                    this.ctx.beginPath();
+                    this.ctx.arc(spX, spY, pSize, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                // 4. Region Macro Label
+                if (ts >= 1.5) {
+                    this.ctx.globalAlpha = 1.0;
+                    this.ctx.fillStyle = colorBeam;
+                    this.ctx.font = `bold ${Math.max(10, Math.min(14, ts * 1.2))}px 'Share', sans-serif`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.shadowColor = '#000';
+                    this.ctx.shadowBlur = 6;
+                    this.ctx.fillText(`⚡ ${epicenter.type} Zone`, px, py - radPx * 1.2 - 4);
+                    this.ctx.shadowBlur = 0;
+                }
             }
+        } catch (err) {
+            console.error('Error drawing macro magic anomalies:', err);
+        } finally {
+            this.ctx.restore();
         }
-
-        this.ctx.restore();
     }
 
     _buildSurfaceCache(W, H) {
