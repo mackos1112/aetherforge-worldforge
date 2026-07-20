@@ -294,25 +294,26 @@ export class WorldEngine {
         const W = this.width, H = this.height;
         const noiseAnom = new GradientNoise2D(new RNG(this.seed + '_Anom'));
 
-        // Probabilistic Magic Anomaly Epicenters (~70% chance per map when allowMagic is true)
         this.anomalyEpicenters = [];
-        const hasMagic = this.allowMagic && (this.rng.nextFloat() < 0.70);
-        if (hasMagic) {
+        if (this.allowMagic) {
             const numEpicenters = this.rng.nextInt(1, 3);
             const anomalyTypes = ['Astral Rift', 'Mana Wastes', 'Fey Wildwood', 'Obsidian Spireland', 'Crystal Fields', 'Bioluminescent Jungle'];
-            for (let e = 0; e < numEpicenters; e++) {
-                let ex = this.rng.nextInt(0, W - 1);
-                let ey = this.rng.nextInt(0, H - 1);
-                let tries = 0;
-                while (tries < 60 && this.heightMap[ey * W + ex] < 0.49) {
-                    ex = this.rng.nextInt(0, W - 1);
-                    ey = this.rng.nextInt(0, H - 1);
-                    tries++;
+            
+            const landCoords = [];
+            for (let ly = 0; ly < H; ly++) {
+                for (let lx = 0; lx < W; lx++) {
+                    if (this.heightMap[ly * W + lx] >= 0.49) {
+                        landCoords.push({ x: lx, y: ly });
+                    }
                 }
-                if (this.heightMap[ey * W + ex] >= 0.49) {
-                    const radius = Math.floor(Math.min(W, H) * (0.07 + this.rng.nextFloat() * 0.04));
+            }
+            
+            if (landCoords.length > 0) {
+                for (let e = 0; e < numEpicenters; e++) {
+                    const pickedLand = this.rng.pick(landCoords);
+                    const radius = Math.max(6, Math.floor(Math.min(W, H) * (0.07 + this.rng.nextFloat() * 0.04)));
                     const aType = this.rng.pick(anomalyTypes);
-                    this.anomalyEpicenters.push({ x: ex, y: ey, radius, type: aType });
+                    this.anomalyEpicenters.push({ x: pickedLand.x, y: pickedLand.y, radius, type: aType });
                 }
             }
         }

@@ -127,6 +127,8 @@ export class WorldVisualizer {
         this.chk_topo.addEventListener('change', () => { this.showTopography = this.chk_topo.checked; this._surfaceCache = null; this._draw(); });
         this.chk_cit.addEventListener('change',  () => { this.showCities    = this.chk_cit.checked; this._draw(); });
         this.chk_poi.addEventListener('change',  () => { this.showPOIs      = this.chk_poi.checked; this._draw(); });
+        if (this.chk_magic)    this.chk_magic.addEventListener('change',    () => this._regenerate());
+        if (this.sel_landmass) this.sel_landmass.addEventListener('change', () => this._regenerate());
 
         // View tabs
         document.querySelectorAll('#worldViewTabs .level-tab').forEach(tab => {
