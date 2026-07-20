@@ -1,5 +1,5 @@
-import { BIOMES, BIOME_KEYS } from './biomes.js?v=1.0.3';
-import { WorldEngine } from './engine.js?v=1.0.3';
+import { BIOMES, BIOME_KEYS } from './biomes.js?v=1.0.4';
+import { WorldEngine } from './engine.js?v=1.0.4';
 
 export class WorldVisualizer {
     constructor() {

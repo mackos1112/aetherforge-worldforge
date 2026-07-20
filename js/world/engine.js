@@ -1,7 +1,7 @@
-import { RNG, GradientNoise2D, binaryInsert } from './utils.js?v=1.0.2';
-import { WorldNameGenerator } from '../names/names.js?v=1.0.2';
-import { BIOME_KEYS, BIOMES, POI_TYPES, getProceduralHooks } from './biomes.js?v=1.0.2';
-import { generatePoiDescription } from './descriptionGenerator.js?v=1.0.2';
+import { RNG, GradientNoise2D, binaryInsert } from './utils.js?v=1.0.4';
+import { WorldNameGenerator } from '../names/names.js?v=1.0.4';
+import { BIOME_KEYS, BIOMES, POI_TYPES, getProceduralHooks } from './biomes.js?v=1.0.4';
+import { generatePoiDescription } from './descriptionGenerator.js?v=1.0.4';
 
 export class WorldEngine {
     constructor(seed, sizeMode, coreType, tectonics, atmosphere, climate, customW = 512, customH = 256, allowMagic = true, landmassType = 'continents') {
@@ -231,6 +231,11 @@ export class WorldEngine {
             }
         }
 
+        // Determine sea level threshold based on landmass topology
+        this.seaLevel = 0.54; // Default continents: ~65% ocean
+        if (this.landmassType === 'islands') this.seaLevel = 0.58; // Archipelago: ~75% ocean
+        if (this.landmassType === 'pangea')  this.seaLevel = 0.51; // Pangea: ~55% ocean
+
         // Normalize height map
         const hRange = hMax - hMin;
         for (let i = 0; i < W * H; i++) {
@@ -286,7 +291,7 @@ export class WorldEngine {
                 const idx = y * W + x;
                 const h = this.heightMap[idx];
 
-                if (h < 0.49) {
+                if (h < this.seaLevel) {
                     // Pick up ocean moisture
                     carriedMoisture = Math.min(1.0, carriedMoisture + 0.08);
                 } else {
@@ -342,12 +347,12 @@ export class WorldEngine {
             const landCoords = [];
             for (let ly = 0; ly < H; ly++) {
                 for (let lx = 0; lx < W; lx++) {
-                    if (this.heightMap[ly * W + lx] >= 0.49) {
+                    if (this.heightMap[ly * W + lx] >= this.seaLevel) {
                         landCoords.push({ x: lx, y: ly });
                     }
                 }
             }
-            
+
             if (landCoords.length > 0) {
                 for (let e = 0; e < numEpicenters; e++) {
                     const pickedLand = this.rng.pick(landCoords);
@@ -367,12 +372,12 @@ export class WorldEngine {
                 const aquifer = this.aquiferMap[idx];
                 let biome = 'Ocean';
 
-                // ── Ocean / Sea ──
-                if (h < 0.30) {
-                    biome = h < 0.15 ? 'Trench' : 'Deep Ocean';
-                } else if (h < 0.44) {
+                // ── Ocean / Sea Depth Gradients ──
+                if (h < this.seaLevel - 0.26) {
+                    biome = h < this.seaLevel - 0.36 ? 'Trench' : 'Deep Ocean';
+                } else if (h < this.seaLevel - 0.07) {
                     biome = 'Ocean';
-                } else if (h < 0.49) {
+                } else if (h < this.seaLevel) {
                     if (temp > 22) biome = 'Coral Reef';
                     else if (temp < 14) biome = 'Kelp Forest';
                     else biome = 'Shallow Sea';
