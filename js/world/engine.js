@@ -194,16 +194,36 @@ export class WorldEngine {
         const rawH = new Float32Array(W * H);
         let hMin = Infinity, hMax = -Infinity;
 
+        // Pre-generate Volcanic Arc Subduction Fault Chains for 'islands' landmass
+        const islandHotspots = [];
+        if (this.landmassType === 'islands') {
+            const arcCount = 5;
+            const arcRng = new RNG(this.seed + '_arcs');
+            for (let a = 0; a < arcCount; a++) {
+                const x0 = arcRng.range(W * 0.1, W * 0.9);
+                const y0 = arcRng.range(H * 0.1, H * 0.9);
+                const angle = arcRng.range(0, Math.PI * 2);
+                const length = arcRng.range(W * 0.25, W * 0.55);
+                const curvature = arcRng.range(-0.4, 0.4);
+
+                const numSpots = arcRng.int(5, 10);
+                for (let s = 0; s < numSpots; s++) {
+                    const t = s / (numSpots - 1);
+                    const curveOffset = Math.sin(t * Math.PI) * length * curvature;
+                    const hx = x0 + Math.cos(angle) * (t * length) - Math.sin(angle) * curveOffset;
+                    const hy = y0 + Math.sin(angle) * (t * length) + Math.cos(angle) * curveOffset;
+                    const radius = arcRng.range(W * 0.025, W * 0.065);
+                    const peak = arcRng.range(0.6, 1.0);
+                    islandHotspots.push({ x: hx, y: hy, radius, peak, isMajor: s % 3 === 0 });
+                }
+            }
+        }
+
         for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
                 const idx = y * W + x;
                 let nx = (x / W) * 3.2;
                 let ny = (y / H) * 1.6;
-
-                if (this.landmassType === 'islands') {
-                    nx = (x / W) * 8.5;
-                    ny = (y / H) * 4.2;
-                }
 
                 let baseH = noiseA.doubleWarpedFbm(nx, ny, 6);
                 let ridgeH = noiseB.ridgedFbm(nx * 2.2, ny * 2.2, 5);
@@ -218,8 +238,36 @@ export class WorldEngine {
                     const dist = Math.sqrt(dx * dx + dy * dy);
                     h -= dist * dist * 0.38;
                 } else if (this.landmassType === 'islands') {
-                    const cell = noiseA.cellularVoronoi(nx * 1.5, ny * 1.5);
-                    h = (1 - cell.f1 * 0.8) * 0.5 + ridgeH * 0.5 - 0.18;
+                    // ── Advanced Volcanic Arc & Coral Atoll Archipelago Engine ──
+                    let arcElevation = 0;
+                    let coralAtollRing = 0;
+
+                    for (const spot of islandHotspots) {
+                        const dx = Math.abs(x - spot.x);
+                        const wrappedDx = Math.min(dx, W - dx); // Wrap longitude
+                        const dy = y - spot.y;
+                        const dist = Math.sqrt(wrappedDx * wrappedDx + dy * dy);
+
+                        if (dist < spot.radius * 2.5) {
+                            // Volcanic island central peak
+                            const normDist = dist / spot.radius;
+                            const peakInfluence = spot.peak * Math.exp(-normDist * normDist * 1.8);
+                            arcElevation = Math.max(arcElevation, peakInfluence);
+
+                            // Coral Barrier Reef Atoll Ring surrounding main volcanic hubs
+                            if (spot.isMajor && normDist > 1.1 && normDist < 1.6) {
+                                coralAtollRing = Math.max(coralAtollRing, 0.42 * (1 - Math.abs(normDist - 1.35) / 0.25));
+                            }
+                        }
+                    }
+
+                    // High-frequency fractal shoreline erosion noise
+                    const shoreErosion = noiseA.fbm(x / W * 18, y / H * 18, 4) * 0.18;
+                    const microIslets = noiseB.cellularVoronoi(x / W * 16, y / H * 16);
+                    const isletFactor = (microIslets.edge < 0.12) ? 0.25 : 0;
+
+                    // Combine volcanic arc hotspots, atolls, islets, and jagged shore erosion
+                    h = arcElevation * 0.70 + coralAtollRing * 0.20 + isletFactor - shoreErosion - 0.12;
                 } else {
                     const latFrac = Math.abs((y / H) - 0.5) * 2;
                     h -= latFrac * latFrac * 0.16;
