@@ -1,7 +1,7 @@
-import { RNG, GradientNoise2D, binaryInsert } from './utils.js';
-import { WorldNameGenerator } from '../names/names.js';
-import { BIOME_KEYS, BIOMES, POI_TYPES, getProceduralHooks } from './biomes.js';
-import { generatePoiDescription } from './descriptionGenerator.js';
+import { RNG, GradientNoise2D, binaryInsert } from './utils.js?v=1.0.2';
+import { WorldNameGenerator } from '../names/names.js?v=1.0.2';
+import { BIOME_KEYS, BIOMES, POI_TYPES, getProceduralHooks } from './biomes.js?v=1.0.2';
+import { generatePoiDescription } from './descriptionGenerator.js?v=1.0.2';
 
 export class WorldEngine {
     constructor(seed, sizeMode, coreType, tectonics, atmosphere, climate, customW = 512, customH = 256, allowMagic = true, landmassType = 'continents') {
@@ -190,36 +190,39 @@ export class WorldEngine {
 
         const W = this.width, H = this.height;
 
-        // ── 1. Heightmap generation with landmass masks ──────────────────────
+        // ── 1. Heightmap generation with Ridged Multifractals ────────────────
         const rawH = new Float32Array(W * H);
         let hMin = Infinity, hMax = -Infinity;
 
         for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
                 const idx = y * W + x;
-                let nx = x / W * 3;
-                let ny = y / H * 1.5;
+                let nx = (x / W) * 3.2;
+                let ny = (y / H) * 1.6;
 
-                // Adjust frequency if islands
                 if (this.landmassType === 'islands') {
-                    nx = x / W * 8.5;
-                    ny = y / H * 4.2;
+                    nx = (x / W) * 8.5;
+                    ny = (y / H) * 4.2;
                 }
 
-                let h = noiseA.warpedFbm(nx, ny, 6);
+                let baseH = noiseA.doubleWarpedFbm(nx, ny, 6);
+                let ridgeH = noiseB.ridgedFbm(nx * 2.2, ny * 2.2, 5);
+
+                // Blend base continent warping with sharp tectonic ridged multifractals
+                let h = baseH * 0.65 + ridgeH * 0.35;
 
                 // Landmass Shape Masks
                 if (this.landmassType === 'pangea') {
                     const dx = (x / W - 0.5) * 2;
                     const dy = (y / H - 0.5) * 2;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    h -= dist * dist * 0.35; // pull edges down
+                    h -= dist * dist * 0.38;
                 } else if (this.landmassType === 'islands') {
-                    h -= 0.14; // submerge lowlands, creating chains
+                    const cell = noiseA.cellularVoronoi(nx * 1.5, ny * 1.5);
+                    h = (1 - cell.f1 * 0.8) * 0.5 + ridgeH * 0.5 - 0.18;
                 } else {
-                    // standard continents: push poles slightly towards water/ice caps
                     const latFrac = Math.abs((y / H) - 0.5) * 2;
-                    h -= latFrac * latFrac * 0.15;
+                    h -= latFrac * latFrac * 0.16;
                 }
 
                 rawH[idx] = h;
@@ -228,53 +231,90 @@ export class WorldEngine {
             }
         }
 
-        // Normalize height
+        // Normalize height map
         const hRange = hMax - hMin;
         for (let i = 0; i < W * H; i++) {
             this.heightMap[i] = (rawH[i] - hMin) / hRange;
         }
 
-        // Tectonics
+        // Active Tectonics: Sharpen mountains & deepen ocean trenches
         if (this.tectonics === 'active') {
             for (let i = 0; i < W * H; i++) {
                 const h = this.heightMap[i];
-                if (h > 0.55) this.heightMap[i] = Math.min(1, 0.55 + (h - 0.55) * 1.8);
-                if (h < 0.4)  this.heightMap[i] = Math.max(0, 0.4 - (0.4 - h) * 1.6);
+                if (h > 0.54) this.heightMap[i] = Math.min(1, 0.54 + Math.pow(h - 0.54, 0.85) * 1.6);
+                if (h < 0.38) this.heightMap[i] = Math.max(0, 0.38 - Math.pow(0.38 - h, 0.85) * 1.4);
             }
         }
 
-        // ── 2. Climate offsets ───────────────────────────────────────────────
+        // ── 2. Climate & Orographic Wind Vector Thermodynamics ───────────────
         const climateOffset = { balanced: 0, frozen: -15, desolate: 12, volcanic: 22 };
         const moistureScale = { balanced: 1, frozen: 0.5, desolate: 0.3, volcanic: 0.65 };
         const dT = climateOffset[this.climate] || 0;
         const dM = moistureScale[this.climate] || 1;
 
-        // ── 3. Fill Climate flat maps ────────────────────────────────────────
+        // Base Temperature & Unmodified Moisture
         for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
                 const idx = y * W + x;
                 const h = this.heightMap[idx];
                 const latDeg = ((H / 2 - y) / (H / 2)) * 90;
-                // Organic latitude warping to bend climate zones naturally
                 const latNoise = noiseT.fbm(x / W * 2.8, y / H * 2.8, 3) * 8.5;
                 const latAbs = Math.max(0, Math.min(90, Math.abs(latDeg + latNoise)));
 
-                // Temperature
-                const altCool = h > 0.5 ? (h - 0.5) * 62 : 0;
-                const baseTemp = 32 - latAbs * 0.76 + dT - altCool;
+                const altCool = h > 0.5 ? (h - 0.5) * 64 : 0;
+                const baseTemp = 32 - latAbs * 0.78 + dT - altCool;
                 this.tempMap[idx] = Math.round(baseTemp);
 
-                // Moisture
                 const rawMoist = (noiseM.fbm(x / W * 5.2, y / H * 5.2, 4) + 1) / 2;
-                const hadley = Math.sin((latAbs / 90) * Math.PI * 3) * 0.16;
+                const hadley = Math.sin((latAbs / 90) * Math.PI * 3) * 0.18;
                 let moisture = Math.max(0, Math.min(1, rawMoist + hadley)) * dM;
-                if (h > 0.65) moisture *= 0.55; // wind shadow
+                if (h < 0.49) moisture = Math.max(moisture, 0.85); // High humidity over ocean
                 this.moistureMap[idx] = Math.round(moisture * 100);
-
-                // Aquifer & Magma
-                this.aquiferMap[idx] = Math.max(5, Math.floor(moisture * 180 - (h > 0.65 ? 50 : 0)));
-                this.magmaMap[idx] = Math.round(h * 60 + (this.climate === 'volcanic' ? 35 : 0));
             }
+        }
+
+        // Orographic Wind Vector Advection (Rain Shadow Effect)
+        // Advect moisture according to latitude Trade Winds & Westerlies
+        for (let y = 0; y < H; y++) {
+            const latDeg = Math.abs(((H / 2 - y) / (H / 2)) * 90);
+            // Wind direction: Easterlies (-1) in tropics & poles, Westerlies (+1) in mid-latitudes
+            const windDirX = (latDeg > 30 && latDeg < 60) ? 1 : -1;
+            
+            let carriedMoisture = 0.5;
+            for (let step = 0; step < W; step++) {
+                const x = (windDirX === 1) ? (step % W) : ((W - 1 - step + W) % W);
+                const idx = y * W + x;
+                const h = this.heightMap[idx];
+
+                if (h < 0.49) {
+                    // Pick up ocean moisture
+                    carriedMoisture = Math.min(1.0, carriedMoisture + 0.08);
+                } else {
+                    // Over land: check elevation climb
+                    const prevX = (x - windDirX + W) % W;
+                    const prevH = this.heightMap[y * W + prevX];
+                    const deltaH = h - prevH;
+
+                    if (deltaH > 0.02) {
+                        // Climbing mountain slope: dump rain on windward slope
+                        const rainDump = deltaH * 2.5 * carriedMoisture;
+                        this.moistureMap[idx] = Math.min(100, Math.round(this.moistureMap[idx] + rainDump * 100));
+                        carriedMoisture = Math.max(0.05, carriedMoisture - rainDump);
+                    } else if (deltaH < -0.02 || h > 0.68) {
+                        // Descending mountain back or high plateau: dry rain shadow!
+                        carriedMoisture *= 0.75;
+                        this.moistureMap[idx] = Math.max(2, Math.round(this.moistureMap[idx] * 0.45));
+                    }
+                }
+            }
+        }
+
+        // Aquifer & Magma Maps
+        for (let idx = 0; idx < W * H; idx++) {
+            const h = this.heightMap[idx];
+            const m = this.moistureMap[idx] / 100;
+            this.aquiferMap[idx] = Math.max(5, Math.floor(m * 180 - (h > 0.65 ? 50 : 0)));
+            this.magmaMap[idx] = Math.round(h * 60 + (this.climate === 'volcanic' ? 35 : 0));
         }
 
         // ── 4. Biome Classification ──────────────────────────────────────────
@@ -296,7 +336,7 @@ export class WorldEngine {
 
         this.anomalyEpicenters = [];
         if (this.allowMagic) {
-            const numEpicenters = this.rng.nextInt(1, 3);
+            const numEpicenters = this.rng.int(1, 3);
             const anomalyTypes = ['Astral Rift', 'Mana Wastes', 'Fey Wildwood', 'Obsidian Spireland', 'Crystal Fields', 'Bioluminescent Jungle'];
             
             const landCoords = [];
@@ -311,7 +351,7 @@ export class WorldEngine {
             if (landCoords.length > 0) {
                 for (let e = 0; e < numEpicenters; e++) {
                     const pickedLand = this.rng.pick(landCoords);
-                    const radius = Math.max(6, Math.floor(Math.min(W, H) * (0.07 + this.rng.nextFloat() * 0.04)));
+                    const radius = Math.max(6, Math.floor(Math.min(W, H) * (0.07 + this.rng.next() * 0.04)));
                     const aType = this.rng.pick(anomalyTypes);
                     this.anomalyEpicenters.push({ x: pickedLand.x, y: pickedLand.y, radius, type: aType });
                 }

@@ -78,10 +78,54 @@ export class GradientNoise2D {
         }
         return v / maxV;
     }
+    ridgedFbm(x, y, oct = 6, lac = 2.0, gain = 0.5) {
+        let v = 0, amp = 0.5, freq = 1, maxV = 0;
+        for (let i = 0; i < oct; i++) {
+            let n = this.noise(x * freq, y * freq);
+            n = 1.0 - Math.abs(n);
+            n = n * n; // Square to sharpen peaks
+            v += n * amp;
+            maxV += amp;
+            amp *= gain;
+            freq *= lac;
+        }
+        return v / maxV;
+    }
     warpedFbm(x, y, oct = 5) {
         const qx = this.fbm(x, y, oct);
         const qy = this.fbm(x + 5.2, y + 1.3, oct);
         return this.fbm(x + 4.0 * qx, y + 4.0 * qy, oct);
+    }
+    doubleWarpedFbm(x, y, oct = 5) {
+        const qx = this.fbm(x, y, oct);
+        const qy = this.fbm(x + 5.2, y + 1.3, oct);
+        const rx = this.fbm(x + 4.0 * qx + 1.7, y + 4.0 * qy + 9.2, oct);
+        const ry = this.fbm(x + 4.0 * qx + 8.3, y + 4.0 * qy + 2.8, oct);
+        return this.fbm(x + 4.0 * rx, y + 4.0 * ry, oct);
+    }
+    cellularVoronoi(x, y) {
+        const xi = Math.floor(x);
+        const yi = Math.floor(y);
+        let minD1 = Infinity, minD2 = Infinity;
+
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const cx = xi + dx;
+                const cy = yi + dy;
+                const h = (Math.sin(cx * 12.9898 + cy * 78.233) * 43758.5453) % 1;
+                const px = cx + (h > 0 ? h : -h);
+                const py = cy + ((cx * 3.1415 + cy * 1.6180) % 1);
+
+                const dist = Math.sqrt((x - px) * (x - px) + (y - py) * (y - py));
+                if (dist < minD1) {
+                    minD2 = minD1;
+                    minD1 = dist;
+                } else if (dist < minD2) {
+                    minD2 = dist;
+                }
+            }
+        }
+        return { f1: minD1, f2: minD2, edge: minD2 - minD1 };
     }
 }
 
