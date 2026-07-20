@@ -261,13 +261,11 @@ export class WorldEngine {
                         }
                     }
 
-                    // High-frequency fractal shoreline erosion noise
-                    const shoreErosion = noiseA.fbm(x / W * 18, y / H * 18, 4) * 0.18;
-                    const microIslets = noiseB.cellularVoronoi(x / W * 16, y / H * 16);
-                    const isletFactor = (microIslets.edge < 0.12) ? 0.25 : 0;
+                    // Organic FBM island clusters combined with volcanic hotspot arcs
+                    const islandClusterNoise = noiseA.warpedFbm((x / W) * 6.5, (y / H) * 3.5, 5);
+                    const fineCoastNoise = noiseB.fbm((x / W) * 14, (y / H) * 7, 4) * 0.15;
 
-                    // Combine volcanic arc hotspots, atolls, islets, and jagged shore erosion
-                    h = arcElevation * 0.70 + coralAtollRing * 0.20 + isletFactor - shoreErosion - 0.12;
+                    h = (arcElevation * 0.65 + islandClusterNoise * 0.35 + coralAtollRing * 0.15) - fineCoastNoise - 0.08;
                 } else {
                     const latFrac = Math.abs((y / H) - 0.5) * 2;
                     h -= latFrac * latFrac * 0.16;
