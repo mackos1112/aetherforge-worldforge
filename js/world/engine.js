@@ -544,9 +544,14 @@ export class WorldEngine {
             const idx = cy * W + cx;
             this.nationMap[idx] = i;
             const pop = this.rng.int(30000, 500000);
-            const cityObj = { name: this.nations[i].capital, isCapital: true, nationId: i, pop };
+            
+            const citySeed = this.rng.int(1, 2000000000).toString();
+            const citySize = pop > 200000 ? 'metropolis' : (pop > 80000 ? 'large' : 'medium');
+            const cityStyle = this.nations[i].style;
+            
+            const cityObj = { name: this.nations[i].capital, isCapital: true, nationId: i, pop, seed: citySeed, size: citySize, style: cityStyle };
             this.citiesMap.set(`${cx},${cy}`, cityObj);
-            this.cities.push({ name: this.nations[i].capital, x: cx, y: cy, nationId: i, isCapital: true, pop });
+            this.cities.push({ name: this.nations[i].capital, x: cx, y: cy, nationId: i, isCapital: true, pop, seed: citySeed, size: citySize, style: cityStyle });
             queue.push({ x: cx, y: cy, nationId: i, cost: 0 });
         }
 
@@ -582,9 +587,13 @@ export class WorldEngine {
             const name = this.nameGen.generate(style, 'city');
             const isCity = this.rng.next() < 0.4;
             const pop = isCity ? this.rng.int(10000, 80000) : this.rng.int(200, 3000);
-            const cityObj = { name, isCapital: false, nationId: this.nationMap[idx], pop };
+            
+            const citySeed = this.rng.int(1, 2000000000).toString();
+            const citySize = pop > 50000 ? 'large' : (pop > 10000 ? 'medium' : 'small');
+            
+            const cityObj = { name, isCapital: false, nationId: this.nationMap[idx], pop, seed: citySeed, size: citySize, style };
             this.citiesMap.set(`${cx},${cy}`, cityObj);
-            this.cities.push({ name, x: cx, y: cy, nationId: this.nationMap[idx], isCapital: false, pop });
+            this.cities.push({ name, x: cx, y: cy, nationId: this.nationMap[idx], isCapital: false, pop, seed: citySeed, size: citySize, style });
         }
     }
 

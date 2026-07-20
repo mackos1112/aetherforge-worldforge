@@ -381,24 +381,73 @@ export class WorldVisualizer {
             this.ctx.strokeRect(ox + x * ts + 0.5, oy + y * ts + 0.5, ts - 1, ts - 1);
         }
 
-        // Cities overlay
+        // Cities overlay — map pins
         if (this.showCities) {
             for (const c of this.world.cities) {
-                const px = ox + (c.x + 0.5) * ts, py = oy + (c.y + 0.5) * ts;
-                const r  = (c.isCapital ? 5 : 3) * Math.min(this.scale * 0.7, 2);
+                const px = ox + (c.x + 0.5) * ts;
+                const py = oy + (c.y + 0.5) * ts;
+                const r = Math.max(2, (c.isCapital ? 5.5 : 3.5) * Math.min(this.scale * 0.75, 2.2));
+                const isSelected = this.selectedTile && this.selectedTile.x === c.x && this.selectedTile.y === c.y;
+
+                // Outer glow halo for capitals or selected city (only when big enough)
+                if ((c.isCapital || isSelected) && r >= 3) {
+                    try {
+                        const glowGrad = this.ctx.createRadialGradient(px, py, r * 0.3, px, py, r * 2.8);
+                        glowGrad.addColorStop(0, isSelected ? 'rgba(100, 220, 255, 0.5)' : 'rgba(255, 209, 102, 0.45)');
+                        glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                        this.ctx.fillStyle = glowGrad;
+                        this.ctx.beginPath();
+                        this.ctx.arc(px, py, r * 2.8, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    } catch (e) { /* skip glow at extreme zoom */ }
+                }
+
+                // Base pin circle — use gradient only when r is large enough to avoid DOMException
                 this.ctx.beginPath();
                 this.ctx.arc(px, py, r, 0, Math.PI * 2);
-                this.ctx.fillStyle = c.isCapital ? '#ffd166' : '#ffffff';
+                if (r >= 3) {
+                    try {
+                        const pinGrad = this.ctx.createRadialGradient(px - r * 0.25, py - r * 0.25, 0.5, px, py, r);
+                        if (c.isCapital) {
+                            pinGrad.addColorStop(0, '#ffe9a0');
+                            pinGrad.addColorStop(0.6, '#dfc45d');
+                            pinGrad.addColorStop(1, '#a0852a');
+                        } else {
+                            pinGrad.addColorStop(0, '#f0f0f0');
+                            pinGrad.addColorStop(0.6, '#bdc3c7');
+                            pinGrad.addColorStop(1, '#808b96');
+                        }
+                        this.ctx.fillStyle = pinGrad;
+                    } catch (e) {
+                        this.ctx.fillStyle = c.isCapital ? '#dfc45d' : '#bdc3c7';
+                    }
+                } else {
+                    // Solid fallback at small scales
+                    this.ctx.fillStyle = c.isCapital ? '#dfc45d' : '#bdc3c7';
+                }
                 this.ctx.fill();
-                this.ctx.strokeStyle = '#111';
-                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = isSelected ? '#00e5ff' : (c.isCapital ? '#8c7625' : '#333');
+                this.ctx.lineWidth = Math.max(0.5, isSelected ? 2 : 1);
                 this.ctx.stroke();
+
+                // Castle battlement crown for capitals (only when rendered large enough)
+                if (c.isCapital && r >= 5) {
+                    const cr = r * 0.52;
+                    this.ctx.fillStyle = '#a0852a';
+                    for (let m = -1; m <= 1; m++) {
+                        const bx = px + m * cr * 0.65;
+                        this.ctx.fillRect(bx - cr * 0.18, py - r - cr * 0.55, cr * 0.35, cr * 0.5);
+                    }
+                }
+
+                // Label (only when tile size is large enough to be legible)
                 if (ts >= 4) {
-                    this.ctx.fillStyle = c.isCapital ? '#ffe599' : '#e5e0c3';
+                    this.ctx.fillStyle = c.isCapital ? '#ffe599' : '#dde1e4';
                     this.ctx.font = `${c.isCapital ? 'bold ' : ''}${Math.max(8, Math.min(12, ts * 0.9))}px 'Share', sans-serif`;
                     this.ctx.textAlign = 'center';
-                    this.ctx.shadowColor = '#000'; this.ctx.shadowBlur = 3;
-                    this.ctx.fillText(c.name, px, py - r - 2);
+                    this.ctx.shadowColor = '#000';
+                    this.ctx.shadowBlur = 4;
+                    this.ctx.fillText(c.name, px, py - r - 4);
                     this.ctx.shadowBlur = 0;
                 }
             }
@@ -860,9 +909,22 @@ export class WorldVisualizer {
                     html += `<p style="color:var(--text-secondary)">🌿 Unclaimed Wilderness</p>`;
                 }
                 if (tile.city) {
-                    html += `<p>${tile.city.isCapital ? '🏛️' : '🏘️'} <strong>${tile.city.name}</strong> ${tile.city.isCapital ? '(Capital)' : 'Settlement'}`;
-                    if (tile.city.pop) html += ` — pop. ${tile.city.pop.toLocaleString()}`;
-                    html += `</p>`;
+                    html += `<p>${tile.city.isCapital ? '🏛️' : '🏘️'} <strong>${tile.city.name}</strong> ${tile.city.isCapital ? '(Capital)' : 'Settlement'} — pop. ${tile.city.pop.toLocaleString()}</p>
+                    
+                    <div style="display:flex; align-items:center; gap:16px; margin: 12px 0; padding: 12px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                        <canvas id="cityShieldCanvas" width="120" height="145" style="background:transparent; filter: drop-shadow(0 6px 16px rgba(0,0,0,0.65)); flex-shrink:0;"></canvas>
+                        <div style="flex:1;">
+                            <h5 style="margin:0 0 4px 0; font-family:'Share',sans-serif; color:#dfc45d; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;">Coat of Arms</h5>
+                            <p style="font-size:11.5px; color:var(--text-secondary); line-height:1.45; margin:0;">
+                                <span id="shieldBlazonText" style="font-style:italic;">Generating heraldry...</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <a href="city.html?seed=${tile.city.seed}&size=${tile.city.size}" target="_blank"
+                       class="btn btn-primary" style="width:100%; font-size:12px; display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px;">
+                       🏰 Visit City Map (Forge 2D Layout)
+                    </a>`;
                 }
                 html += `</div>`;
             }
@@ -924,6 +986,529 @@ export class WorldVisualizer {
         }
 
         this.inspector.innerHTML = html;
+
+        const shieldCanvas = document.getElementById('cityShieldCanvas');
+        if (shieldCanvas && this.selectedTile && this.selectedTile.city) {
+            this._drawCityCoatOfArms(shieldCanvas, this.selectedTile.city);
+        }
+    }
+
+    _drawCityCoatOfArms(canvas, city) {
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        // Seeded LCG RNG
+        const hRng = new (class {
+            constructor(seed) { this.s = (Number(seed) || 54321) >>> 0; }
+            next() {
+                this.s = Math.imul(1664525, this.s) + 1013904223 >>> 0;
+                return this.s / 4294967296;
+            }
+            range(a, b) { return a + this.next() * (b - a); }
+            int(a, b) { return Math.floor(this.range(a, b + 0.9999)); }
+            pick(arr) { return arr[this.int(0, arr.length - 1)]; }
+        })(city.seed);
+
+        // ── Tincture palettes ────────────────────────────────────────────────
+        const metals  = [
+            { name: 'Or (Gold)',    val: '#D4A017', hi: '#F5D76E', lo: '#9A6E0A' },
+            { name: 'Argent',      val: '#D8DDE3', hi: '#FFFFFF', lo: '#9AAAB4' }
+        ];
+        const colors  = [
+            { name: 'Gules',       val: '#8B0000', hi: '#C0392B', lo: '#5C0000' },
+            { name: 'Azure',       val: '#003580', hi: '#1A6DBF', lo: '#001E5C' },
+            { name: 'Vert',        val: '#1A5C2A', hi: '#27AE60', lo: '#0A3318' },
+            { name: 'Sable',       val: '#1A1A1A', hi: '#4D4D4D', lo: '#000000' },
+            { name: 'Purpure',     val: '#5B1A7A', hi: '#8E44AD', lo: '#3A0D52' }
+        ];
+        const tinctures = [...metals, ...colors];
+
+        // Pick two contrasting tinctures (metal+color or color+metal)
+        let c1, c2;
+        if (hRng.next() < 0.6) {
+            c1 = hRng.pick(metals);  c2 = hRng.pick(colors);
+        } else {
+            c1 = hRng.pick(colors);  c2 = hRng.pick(metals);
+        }
+        // charge must contrast with both
+        let cc = hRng.pick(tinctures);
+        while (cc.val === c1.val || cc.val === c2.val) cc = hRng.pick(tinctures);
+
+        // ── Field divisions ──────────────────────────────────────────────────
+        const divType = hRng.pick(['solid','pale','fess','quarterly','bend','bend-sin','chevron','gyronny','paly','barry']);
+
+        // ── Shield path (classic heater) ─────────────────────────────────────
+        const pad = 7;
+        const sw = W - pad * 2, sh = H - pad * 2;
+        const sx = pad, sy = pad;
+
+        const shieldPath = () => {
+            ctx.beginPath();
+            // top-left corner round
+            ctx.moveTo(sx + sw * 0.12, sy);
+            ctx.lineTo(sx + sw * 0.88, sy);
+            // top-right chamfer
+            ctx.quadraticCurveTo(sx + sw, sy, sx + sw, sy + sh * 0.08);
+            // right side tapering inward
+            ctx.lineTo(sx + sw, sy + sh * 0.54);
+            // right curve toward point
+            ctx.bezierCurveTo(
+                sx + sw,      sy + sh * 0.82,
+                sx + sw * 0.5, sy + sh,
+                sx + sw * 0.5, sy + sh
+            );
+            // left curve from point
+            ctx.bezierCurveTo(
+                sx + sw * 0.5, sy + sh,
+                sx,            sy + sh * 0.82,
+                sx,            sy + sh * 0.54
+            );
+            ctx.lineTo(sx, sy + sh * 0.08);
+            ctx.quadraticCurveTo(sx, sy, sx + sw * 0.12, sy);
+            ctx.closePath();
+        };
+
+        // ── Helper: draw field pattern ───────────────────────────────────────
+        const fillField = (colA, colB, type) => {
+            ctx.fillStyle = colA.val;
+            ctx.fillRect(sx, sy, sw, sh);
+
+            ctx.fillStyle = colB.val;
+            const cx = sx + sw / 2, cy = sy + sh / 2;
+
+            if (type === 'pale') {
+                ctx.fillRect(cx, sy, sw / 2, sh);
+            } else if (type === 'fess') {
+                ctx.fillRect(sx, cy, sw, sh / 2);
+            } else if (type === 'quarterly') {
+                ctx.fillRect(cx, sy, sw / 2, sh / 2);
+                ctx.fillRect(sx, cy, sw / 2, sh / 2);
+            } else if (type === 'bend') {
+                ctx.beginPath();
+                ctx.moveTo(sx, sy); ctx.lineTo(sx + sw, sy);
+                ctx.lineTo(sx + sw, sy + sh); ctx.closePath();
+                ctx.fill();
+            } else if (type === 'bend-sin') {
+                ctx.beginPath();
+                ctx.moveTo(sx, sy); ctx.lineTo(sx, sy + sh);
+                ctx.lineTo(sx + sw, sy + sh); ctx.closePath();
+                ctx.fill();
+            } else if (type === 'chevron') {
+                ctx.beginPath();
+                ctx.moveTo(sx, sy + sh * 0.62);
+                ctx.lineTo(cx, sy + sh * 0.22);
+                ctx.lineTo(sx + sw, sy + sh * 0.62);
+                ctx.lineTo(sx + sw, sy + sh);
+                ctx.lineTo(cx, sy + sh * 0.5);
+                ctx.lineTo(sx, sy + sh);
+                ctx.closePath();
+                ctx.fill();
+            } else if (type === 'gyronny') {
+                // 8-piece radial
+                for (let g = 0; g < 8; g += 2) {
+                    const a1 = (g / 8) * Math.PI * 2 - Math.PI / 8;
+                    const a2 = ((g + 1) / 8) * Math.PI * 2 - Math.PI / 8;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.arc(cx, cy, sw, a1, a2);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            } else if (type === 'paly') {
+                // 6 vertical stripes alternating
+                const stripeW = sw / 6;
+                for (let i = 0; i < 6; i += 2) {
+                    ctx.fillRect(sx + i * stripeW, sy, stripeW, sh);
+                }
+            } else if (type === 'barry') {
+                // 6 horizontal stripes
+                const stripeH = sh / 6;
+                for (let i = 0; i < 6; i += 2) {
+                    ctx.fillRect(sx, sy + i * stripeH, sw, stripeH);
+                }
+            }
+            // solid: already done above
+        };
+
+        // ── Draw field (clipped to shield) ───────────────────────────────────
+        ctx.save();
+        shieldPath();
+        ctx.clip();
+
+        fillField(c1, c2, divType);
+
+        // Subtle field texture: stipple if a color field
+        if (c1.val !== metals[0].val && c1.val !== metals[1].val) {
+            ctx.fillStyle = 'rgba(255,255,255,0.04)';
+            for (let y = sy; y < sy + sh; y += 5) {
+                for (let x = sx; x < sx + sw; x += 5) {
+                    ctx.fillRect(x, y, 2, 2);
+                }
+            }
+        }
+
+        ctx.restore();
+
+        // ── Inner border fillet (1px dark) ───────────────────────────────────
+        ctx.save();
+        shieldPath();
+        ctx.clip();
+        const innerPad = 5;
+        ctx.beginPath();
+        ctx.moveTo(sx + sw * 0.12 + innerPad, sy + innerPad);
+        ctx.lineTo(sx + sw * 0.88 - innerPad, sy + innerPad);
+        ctx.quadraticCurveTo(sx + sw - innerPad, sy + innerPad, sx + sw - innerPad, sy + sh * 0.08 + innerPad);
+        ctx.lineTo(sx + sw - innerPad, sy + sh * 0.54);
+        ctx.bezierCurveTo(
+            sx + sw - innerPad, sy + sh * 0.80,
+            sx + sw * 0.5,      sy + sh - innerPad * 1.5,
+            sx + sw * 0.5,      sy + sh - innerPad * 1.5
+        );
+        ctx.bezierCurveTo(
+            sx + sw * 0.5,      sy + sh - innerPad * 1.5,
+            sx + innerPad,      sy + sh * 0.80,
+            sx + innerPad,      sy + sh * 0.54
+        );
+        ctx.lineTo(sx + innerPad, sy + sh * 0.08 + innerPad);
+        ctx.quadraticCurveTo(sx + innerPad, sy + innerPad, sx + sw * 0.12 + innerPad, sy + innerPad);
+        ctx.closePath();
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+
+        // ── Charges ──────────────────────────────────────────────────────────
+        const chargeType = hRng.pick(['castle','crown','lion','tree','swords','eagle','fleur','dragon']);
+        const chX = sx + sw * 0.5, chY = sy + sh * 0.44;
+        const chSz = sw * 0.34;
+
+        ctx.save();
+        shieldPath();
+        ctx.clip();
+        ctx.fillStyle = cc.val;
+        ctx.strokeStyle = cc.lo || 'rgba(0,0,0,0.4)';
+        ctx.lineJoin = 'round';
+        ctx.lineCap  = 'round';
+
+        if (chargeType === 'castle') {
+            // Detailed keep with towers and portcullis
+            const bw = chSz * 1.4, bh = chSz * 1.1;
+            const bx = chX - bw / 2, by = chY - bh * 0.55;
+            // Main body
+            ctx.fillRect(bx, by + bh * 0.3, bw, bh * 0.7);
+            // Battlements (7 merlons)
+            const mW = bw / 9, mH = bh * 0.2;
+            for (let m = 0; m < 9; m += 2) {
+                ctx.fillRect(bx + m * mW, by + bh * 0.1, mW, mH);
+            }
+            // Two side towers
+            const tW = bw * 0.24, tH = bh * 0.9;
+            ctx.fillRect(bx - tW * 0.3, by, tW, tH);
+            ctx.fillRect(bx + bw - tW * 0.7, by, tW, tH);
+            // Tower battlement
+            const tmW = tW / 3;
+            [bx - tW * 0.3, bx + bw - tW * 0.7].forEach(tx => {
+                ctx.fillRect(tx, by - mH * 0.8, tmW, mH);
+                ctx.fillRect(tx + tmW * 2, by - mH * 0.8, tmW, mH);
+            });
+            // Gate arch
+            ctx.save();
+            ctx.globalCompositeOperation = 'destination-out';
+            const gW = bw * 0.22, gH = bh * 0.35;
+            const gX = chX - gW / 2, gY = by + bh - gH;
+            ctx.beginPath();
+            ctx.moveTo(gX, gY + gH);
+            ctx.lineTo(gX, gY + gH * 0.5);
+            ctx.arc(gX + gW / 2, gY + gH * 0.5, gW / 2, Math.PI, 0);
+            ctx.lineTo(gX + gW, gY + gH);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            // Portcullis bars
+            ctx.fillStyle = cc.val;
+            ctx.globalAlpha = 0.5;
+            const pbX = chX - gW/2, pbY = by + bh - gH;
+            for (let b = 0; b < 3; b++) {
+                ctx.fillRect(pbX + gW * 0.25 * b, pbY, gW * 0.06, gH * 0.75);
+            }
+            ctx.globalAlpha = 1;
+
+        } else if (chargeType === 'crown') {
+            // Imperial crown with arches and jewels
+            const cW = chSz * 1.5, cH = chSz * 1.1;
+            const cx2 = chX, base = chY + cH * 0.3;
+            // Band
+            ctx.fillRect(cx2 - cW/2, base - cH * 0.25, cW, cH * 0.25);
+            // Five spires
+            const spireXs = [0, 0.22, 0.44].map(f => cx2 + (f - 0.22) * cW);
+            const spireH = [cH * 0.85, cH * 0.55, cH * 0.55];
+            [-0.44, -0.22, 0, 0.22, 0.44].forEach((f, i) => {
+                const sx2 = cx2 + f * cW;
+                const sh2 = i % 2 === 0 ? cH * 0.85 : cH * 0.55;
+                ctx.beginPath();
+                ctx.moveTo(sx2 - cW * 0.06, base - cH * 0.25);
+                ctx.lineTo(sx2, base - sh2);
+                ctx.lineTo(sx2 + cW * 0.06, base - cH * 0.25);
+                ctx.fill();
+                // jewel on top
+                ctx.beginPath();
+                ctx.arc(sx2, base - sh2, cW * 0.04, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            // Jewels on band
+            for (let j = -2; j <= 2; j++) {
+                ctx.beginPath();
+                ctx.arc(cx2 + j * cW * 0.22, base - cH * 0.12, cW * 0.04, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (chargeType === 'lion') {
+            // Heraldic lion rampant (stylized)
+            const lSz = chSz * 1.2;
+            // Body
+            ctx.beginPath();
+            ctx.ellipse(chX, chY + lSz * 0.1, lSz * 0.3, lSz * 0.45, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Head
+            ctx.beginPath();
+            ctx.arc(chX + lSz * 0.2, chY - lSz * 0.5, lSz * 0.22, 0, Math.PI * 2);
+            ctx.fill();
+            // Mane
+            ctx.beginPath();
+            ctx.arc(chX + lSz * 0.2, chY - lSz * 0.5, lSz * 0.3, 0, Math.PI * 2);
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            // Front paw raised
+            ctx.beginPath();
+            ctx.moveTo(chX + lSz * 0.15, chY - lSz * 0.15);
+            ctx.bezierCurveTo(chX + lSz * 0.55, chY - lSz * 0.25, chX + lSz * 0.6, chY, chX + lSz * 0.5, chY + lSz * 0.1);
+            ctx.lineWidth = lSz * 0.12;
+            ctx.stroke();
+            // Tail
+            ctx.beginPath();
+            ctx.moveTo(chX - lSz * 0.25, chY + lSz * 0.45);
+            ctx.bezierCurveTo(chX - lSz * 0.55, chY, chX - lSz * 0.3, chY - lSz * 0.3, chX - lSz * 0.1, chY - lSz * 0.5);
+            ctx.lineWidth = lSz * 0.07;
+            ctx.stroke();
+
+        } else if (chargeType === 'tree') {
+            // Oak tree with detailed canopy
+            const tH = chSz * 1.3;
+            // Trunk
+            ctx.fillRect(chX - chSz * 0.1, chY - chSz * 0.1, chSz * 0.2, tH * 0.55);
+            // Three overlapping canopy circles
+            [[0, -0.55, 0.42],[-.28, -0.35, 0.32],[.28, -0.35, 0.32]].forEach(([dx, dy, r]) => {
+                ctx.beginPath();
+                ctx.arc(chX + chSz * dx, chY + tH * dy, chSz * r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            // Root lines
+            ctx.lineWidth = chSz * 0.07;
+            [[-0.25, 0.45],[0, 0.5],[0.25, 0.45]].forEach(([dx, dy]) => {
+                ctx.beginPath();
+                ctx.moveTo(chX, chY - chSz * 0.1 + tH * 0.55);
+                ctx.lineTo(chX + chSz * dx, chY + tH * dy);
+                ctx.stroke();
+            });
+
+        } else if (chargeType === 'swords') {
+            // Two crossed swords with pommels
+            const sL = chSz * 1.3;
+            const drawSword = (angle) => {
+                ctx.save();
+                ctx.translate(chX, chY);
+                ctx.rotate(angle);
+                // blade
+                ctx.beginPath();
+                ctx.moveTo(0, -sL * 0.55);
+                ctx.lineTo(sL * 0.055, sL * 0.3);
+                ctx.lineTo(-sL * 0.055, sL * 0.3);
+                ctx.closePath();
+                ctx.fill();
+                // crossguard
+                ctx.fillRect(-sL * 0.28, sL * 0.28, sL * 0.56, sL * 0.06);
+                // grip
+                ctx.fillRect(-sL * 0.06, sL * 0.33, sL * 0.12, sL * 0.22);
+                // pommel
+                ctx.beginPath();
+                ctx.ellipse(0, sL * 0.57, sL * 0.1, sL * 0.07, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            };
+            drawSword(-Math.PI / 5);
+            drawSword( Math.PI / 5);
+
+        } else if (chargeType === 'eagle') {
+            // Heraldic eagle displayed
+            const eSz = chSz * 1.35;
+            // Body
+            ctx.beginPath();
+            ctx.ellipse(chX, chY + eSz * 0.05, eSz * 0.18, eSz * 0.38, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Head
+            ctx.beginPath();
+            ctx.arc(chX, chY - eSz * 0.38, eSz * 0.14, 0, Math.PI * 2);
+            ctx.fill();
+            // Beak
+            ctx.beginPath();
+            ctx.moveTo(chX + eSz * 0.1, chY - eSz * 0.41);
+            ctx.lineTo(chX + eSz * 0.28, chY - eSz * 0.35);
+            ctx.lineTo(chX + eSz * 0.1, chY - eSz * 0.3);
+            ctx.fill();
+            // Wings (both sides)
+            [1, -1].forEach(side => {
+                ctx.beginPath();
+                ctx.moveTo(chX, chY - eSz * 0.1);
+                ctx.bezierCurveTo(
+                    chX + side * eSz * 0.5, chY - eSz * 0.4,
+                    chX + side * eSz * 0.75, chY + eSz * 0.1,
+                    chX + side * eSz * 0.55, chY + eSz * 0.35
+                );
+                ctx.bezierCurveTo(
+                    chX + side * eSz * 0.35, chY + eSz * 0.5,
+                    chX + side * eSz * 0.15, chY + eSz * 0.3,
+                    chX, chY - eSz * 0.1
+                );
+                ctx.fill();
+            });
+            // Talons
+            [-.12, .12].forEach(dx => {
+                ctx.lineWidth = eSz * 0.05;
+                ctx.beginPath();
+                ctx.moveTo(chX + dx * chSz, chY + eSz * 0.43);
+                ctx.lineTo(chX + dx * chSz, chY + eSz * 0.56);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(chX + dx * chSz, chY + eSz * 0.52);
+                ctx.lineTo(chX + (dx - 0.1) * chSz, chY + eSz * 0.58);
+                ctx.moveTo(chX + dx * chSz, chY + eSz * 0.52);
+                ctx.lineTo(chX + (dx + 0.1) * chSz, chY + eSz * 0.58);
+                ctx.stroke();
+            });
+
+        } else if (chargeType === 'fleur') {
+            // Fleur-de-lis
+            const fSz = chSz * 1.3;
+            const drawPetal = (cx2, cy2, r, topAngle) => {
+                ctx.beginPath();
+                ctx.arc(cx2, cy2, r, topAngle + 0.3, topAngle + Math.PI - 0.3);
+                ctx.arc(cx2, cy2, r * 0.6, topAngle + Math.PI - 0.3, topAngle + Math.PI * 2 - 0.3, true);
+                ctx.closePath();
+                ctx.fill();
+            };
+            // Center petal
+            drawPetal(chX, chY - fSz * 0.15, fSz * 0.35, Math.PI);
+            // Side petals
+            drawPetal(chX - fSz * 0.3, chY + fSz * 0.05, fSz * 0.22, Math.PI * 1.5);
+            drawPetal(chX + fSz * 0.3, chY + fSz * 0.05, fSz * 0.22, Math.PI * 0.5);
+            // Stem
+            ctx.fillRect(chX - fSz * 0.07, chY + fSz * 0.15, fSz * 0.14, fSz * 0.38);
+            // Base curl
+            ctx.beginPath();
+            ctx.arc(chX, chY + fSz * 0.53, fSz * 0.18, 0, Math.PI);
+            ctx.fill();
+
+        } else { // dragon
+            // Wyvern silhouette
+            const dSz = chSz * 1.2;
+            // Body
+            ctx.beginPath();
+            ctx.ellipse(chX - dSz * 0.05, chY + dSz * 0.1, dSz * 0.22, dSz * 0.35, 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            // Head
+            ctx.beginPath();
+            ctx.ellipse(chX + dSz * 0.3, chY - dSz * 0.38, dSz * 0.17, dSz * 0.13, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+            // Neck
+            ctx.lineWidth = dSz * 0.13;
+            ctx.beginPath();
+            ctx.moveTo(chX + dSz * 0.1, chY - dSz * 0.07);
+            ctx.bezierCurveTo(chX + dSz * 0.25, chY - dSz * 0.2, chX + dSz * 0.25, chY - dSz * 0.3, chX + dSz * 0.2, chY - dSz * 0.38);
+            ctx.stroke();
+            // Wing
+            ctx.beginPath();
+            ctx.moveTo(chX, chY - dSz * 0.05);
+            ctx.bezierCurveTo(chX - dSz * 0.45, chY - dSz * 0.5, chX - dSz * 0.65, chY - dSz * 0.1, chX - dSz * 0.5, chY + dSz * 0.2);
+            ctx.bezierCurveTo(chX - dSz * 0.35, chY + dSz * 0.1, chX - dSz * 0.1, chY + dSz * 0.05, chX, chY - dSz * 0.05);
+            ctx.fill();
+            // Tail curl
+            ctx.lineWidth = dSz * 0.08;
+            ctx.beginPath();
+            ctx.moveTo(chX - dSz * 0.1, chY + dSz * 0.42);
+            ctx.bezierCurveTo(chX + dSz * 0.3, chY + dSz * 0.55, chX + dSz * 0.5, chY + dSz * 0.3, chX + dSz * 0.35, chY + dSz * 0.15);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // ── Shading: inner light from top-left ───────────────────────────────
+        ctx.save();
+        shieldPath();
+        ctx.clip();
+        const shine = ctx.createLinearGradient(sx, sy, sx + sw * 0.6, sy + sh * 0.6);
+        shine.addColorStop(0,    'rgba(255,255,255,0.20)');
+        shine.addColorStop(0.4,  'rgba(255,255,255,0.05)');
+        shine.addColorStop(0.5,  'rgba(0,0,0,0)');
+        shine.addColorStop(1,    'rgba(0,0,0,0.28)');
+        ctx.fillStyle = shine;
+        ctx.fillRect(sx, sy, sw, sh);
+        ctx.restore();
+
+        // ── Outer border: triple-line gold filigree ──────────────────────────
+        ctx.save();
+        // Thick dark shadow
+        shieldPath();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 7;
+        ctx.stroke();
+        // Gold outer band
+        shieldPath();
+        ctx.strokeStyle = '#C8960C';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        // Gold highlight
+        shieldPath();
+        ctx.strokeStyle = '#F2C84B';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        // Inner thin line
+        ctx.save();
+        ctx.translate(4, 4);
+        ctx.scale((sw - 8) / sw, (sh - 8) / sh);
+        ctx.translate(-4, -4);
+        shieldPath();
+        ctx.strokeStyle = 'rgba(242,200,75,0.4)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+        ctx.restore();
+
+        // ── Corner boss ornaments ─────────────────────────────────────────────
+        ctx.save();
+        const bossSz = 3.5;
+        ctx.fillStyle = '#F2C84B';
+        ctx.strokeStyle = '#9A6E0A';
+        ctx.lineWidth = 0.8;
+        [[sx + sw * 0.12, sy],[sx + sw * 0.88, sy],[sx, sy + sh * 0.08],[sx + sw, sy + sh * 0.08]].forEach(([bx2, by2]) => {
+            ctx.beginPath();
+            ctx.arc(bx2, by2, bossSz, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        });
+        ctx.restore();
+
+        // ── Blazon text ──────────────────────────────────────────────────────
+        const divNames = { solid:'a Solid Field', pale:'Per Pale', fess:'Per Fess', quarterly:'Quarterly',
+            bend:'Per Bend', 'bend-sin':'Per Bend Sinister', chevron:'Per Chevron',
+            gyronny:'Gyronny', paly:'Paly of Six', barry:'Barry of Six' };
+        const chargeNames = { castle:'Castle Keep', crown:'Royal Crown', lion:'Lion Rampant',
+            tree:'Sacred Oak', swords:'Crossed Swords', eagle:'Eagle Displayed',
+            fleur:'Fleur-de-Lis', dragon:'Wyvern' };
+        const blazonEl = document.getElementById('shieldBlazonText');
+        if (blazonEl) {
+            blazonEl.textContent = `${divNames[divType]} of ${c1.name} & ${c2.name}, charged with a ${chargeNames[chargeType]} in ${cc.name}.`;
+        }
     }
 
     _hexToRgbArr(hex) {

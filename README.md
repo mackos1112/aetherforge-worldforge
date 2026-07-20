@@ -1,8 +1,8 @@
 # 🌍 Aetherforge Worldforge
 
-**A procedural TTRPG map & dungeon generator for tabletop role-playing games and worldbuilding.**
+**A procedural TTRPG map, city, name & dungeon generator for tabletop role-playing games and worldbuilding.**
 
-Aetherforge Worldforge is a browser-based collection of free procedural generators that simulate entire worlds — from planetary cores to atmospheric layers — and lets you drill down into political nations, cities, and dungeon-linked Points of Interest.
+Aetherforge Worldforge is a browser-based suite of procedural generators that simulate entire worlds — from planetary cores to atmospheric layers — and lets you drill down into political nations, procedural cities, dungeon-linked Points of Interest, and customized local maps.
 
 ---
 
@@ -10,9 +10,11 @@ Aetherforge Worldforge is a browser-based collection of free procedural generato
 
 | Generator | File | Description |
 |---|---|---|
-| **Portal Landing Page** | `index.html` | Card-grid homepage listing all generators |
+| **Portal Landing Page** | `index.html` | Card-grid homepage listing all available tools |
 | **Planetary Worldforge** | `world.html` | Full procedural planet: surface maps, political borders, cities, POIs, internal layers, and geological profiles |
+| **Procedural City Generator** | `city.html` | Interactive medieval/fantasy city layouts with custom street patterns, castle keeps, rivers, districts, and population metrics |
 | **Aetherforge Dungeon** | `dungeon.html` | Multi-level procedural dungeon builder with canvas editing, room inspector, fog-of-war, and VTT export |
+| **Name Generator** | `names.html` | Markov chain and syllable-based fantasy naming engine for characters, factions, and landmarks |
 | **Player Window** | `player.html` | Synchronized player-facing map view (real-time fog of war reveal) |
 
 ---
@@ -30,8 +32,16 @@ Aetherforge Worldforge is a browser-based collection of free procedural generato
 - **Atmospheric Layers**: Troposphere, Stratosphere, Mesosphere, Thermosphere, Exosphere, Magnetosphere
 - **Geological Materials**: Bedrock, Regolith, Soil, Magma, Lava, Sediment
 - **Political Divisions** — Voronoi territory expansion generating nations with capital cities and contested borders
-- **Cities** — Procedurally placed settlements near rivers, coasts, and fertile land
+- **Cities & Settlements** — Procedurally placed settlements near rivers, coasts, and fertile land
 - **Dungeon POIs** — Scattered crypts, keeps, caverns, and temples that deep-link directly into the Dungeon Generator
+
+### 🏙️ Procedural City Generator (`city.html`)
+- **Street Layout Algorithms**: Generate street grids using Hexagonal, Square, or Voronoi-based expansion patterns
+- **City Features**: Customize the inclusion of City Walls, Central Castles/keeps, Rivers, Coastlines, surrounding Farmlands, and labels
+- **Interactive Districts**: Hover over or click districts (e.g., Temple District, Slums, Merchants, Castle, Craftsmen) to view name, population density, and description
+- **Visual Styling**: Choose between multiple themes including Parchment, Slate (Dark Mode), Blueprint, and Colorized Parchment
+- **Seed Integration**: Auto-loads a specific layout when linked from a world map city or using a custom URL seed
+- **Exporting**: Download high-quality city maps as PNGs for print or digital play
 
 ### 🏰 Aetherforge Dungeon Generator (`dungeon.html`)
 - Procedural **multi-level dungeon** generation (Wilderness Surface + Underground + Cavern levels)
@@ -46,12 +56,18 @@ Aetherforge Worldforge is a browser-based collection of free procedural generato
 - Synchronized **Player Window** tab via BroadcastChannel API
 - **URL Deep-linking** from the World Generator — a dungeon is auto-seeded and themed based on the POI clicked on the world map
 
+### ✍️ Name Generator (`names.html`)
+- **Hybrid Naming Engine**: Employs Markov Chain models trained on distinct language corpora alongside syllable construction algorithms
+- **Ethnic & Cultural Presets**: Includes generator options for Human, Elven, Dwarven, Norse, Orcish, Halfling, and Draconic structures
+- **Category Support**: Instantly generate names for characters, settlements, geographical landmarks, and military factions
+- **Customization Controls**: Tune min/max lengths, syllable configurations, and random variation parameters
+
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- A modern browser (Chrome, Firefox, Edge)
+- A modern browser (Chrome, Firefox, Safari, Edge)
 - A local web server (required for ES Module loading — see below)
 
 ### ⚠️ Important: Local Server Required
@@ -78,37 +94,13 @@ npx serve .
 
 ---
 
-## 🎮 Usage Guide
+## 🎮 Usage & Integration
 
-### Step 1: Open the Portal
-Navigate to `http://127.0.0.1:8080/` to see the card-grid landing page.
+All generators in the Aetherforge Worldforge ecosystem are interconnected through URL parameters and shared seed values:
 
-### Step 2: Generate a Planet
-Click **Planetary Worldforge** to open `world.html`.
-
-1. Optionally set a **World Seed** (or click 🔄 for a random seed)
-2. Configure parameters: Planet Size, Core Composition, Tectonic Activity, Atmosphere Density, Climate Mode
-3. Click **Forge Planet** to generate
-4. Explore the three view tabs: **Global Surface Map**, **Concentric Slice**, **Geological Profile**
-5. Use the **overlay toggles** to show/hide Political Borders, Cities, and Dungeon POIs
-
-### Step 3: Inspect a Sector
-Click any tile on the Global Surface Map to inspect its details in the right sidebar:
-- Geographical readings (landform, temperature, moisture, aquifer depth)
-- Political territory info
-- City/settlement info if present
-- **Dungeon POI** — if a Point of Interest is present, you'll see its description and a **"Explore Location (Forge Dungeon)"** button
-
-### Step 4: Launch a Linked Dungeon
-Clicking **"Explore Location (Forge Dungeon)"** opens `dungeon.html` in a new tab, automatically seeded and themed to match the POI you clicked (e.g. a volcanic vent zone opens a Volcanic Caves dungeon, a crypt ruins opens a Forgotten Crypt layout).
-
-### Step 5: Generate & Edit the Dungeon
-On the dungeon page:
-1. Click **Forge Map** to generate the dungeon
-2. Use the floating **paint toolbar** to edit tiles manually
-3. Switch between **Surface**, **Level -1 (Dungeon)**, and **Level -2 (Caverns)** tabs
-4. Click rooms/corridors to inspect them in the **Room Inspector** on the right
-5. Export the map as a **PNG**, **JSON**, or **Universal VTT** format
+1. **Start with the World**: Forge a planet at `world.html`. Zoom and pan around to find interesting nations, settlements, and dungeons.
+2. **Explore a City**: Click a settlement on the world map and select the option to explore the city. This opens `city.html` passing the seed and name via URL, generating a detailed, customized layout for that specific city.
+3. **Explore a Dungeon**: Click any Dungeon POI on the world map to open `dungeon.html`. The dungeon archetype (e.g. Volcanic Caves, Sunken Temple) is automatically selected to match the world biome at that coordinate, and the random seed is synchronized.
 
 ---
 
@@ -116,24 +108,36 @@ On the dungeon page:
 
 ```
 aetherforge-worldforge/
-├── index.html          # Landing page portal (card grid)
-├── dungeon.html        # Dungeon generator (full-screen)
-├── world.html          # Planetary worldforge (full-screen)
-├── player.html         # Synchronized player window
-├── style.css           # Global styling (Watabou-inspired + Aetherforge theme)
+├── index.html            # Landing page portal (card grid)
+├── world.html            # Planetary worldforge (full-screen)
+├── city.html             # Procedural city generator (full-screen)
+├── dungeon.html          # Dungeon generator (full-screen)
+├── names.html            # Procedural name generator interface
+├── player.html           # Synchronized player window for dungeon FOW
+├── style.css             # Global styling & custom themes
 └── js/
-    ├── config.js       # Theme configs, tile type constants
-    ├── generator.js    # Core dungeon/wilderness procedural generation engine
-    ├── renderer.js     # Canvas tile map renderer with pan/zoom
-    ├── main.js         # Dungeon UI controller, event handlers, URL deep-linking
-    └── world.js        # Planetary worldforge generator & canvas visualizer
+    ├── config.js         # Theme configs, tile type constants
+    ├── generator.js      # Core dungeon/wilderness procedural generation engine
+    ├── renderer.js       # Canvas tile map renderer with pan/zoom
+    ├── main.js           # Dungeon UI controller, event handlers, URL deep-linking
+    ├── city.js           # City UI controller & event handlers
+    ├── city/
+    │   ├── generator.js  # Procedural city layout engine
+    │   └── geometry.js   # Geometric utility helpers (polygon insets, point containment)
+    ├── names/
+    │   └── names.js      # Markov chain & syllable-based naming engine
+    └── world/
+        ├── utils.js      # Random number generator & helpers
+        ├── biomes.js     # Biome definition matrices & colors
+        ├── engine.js     # Planetary terrain generation & Voronoi nation engine
+        └── visualizer.js # Canvas visualizers for planet maps, slices, & drill cores
 ```
 
 ---
 
 ## 🎨 Design
 
-The interface is inspired by the minimalist portal aesthetic of [Watabou's Procgen Arcana](https://watabou.github.io), using:
+The interface is inspired by the minimalist portal aesthetic of [Watabou's Procgen Arcana](https://watabou.github.io), styled with:
 - Fonts: **Merriweather** (serif headings) and **Share** (sans body text) via Google Fonts
 - Dark slate body (`#2e3033`) with warm parchment cards (`#d9d3ce`)
 - Steel-blue accent colors (`#6688aa`) with yellow hover highlights (`#ffee99`)

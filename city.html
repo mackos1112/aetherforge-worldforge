@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural City Generator | Aetherforge Worldforge</title>
+    <!-- Google Fonts: Merriweather (serif) and Share Tech / Share (sans-serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Share+Tech&family=Share:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .city-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+            height: calc(100vh - 70px);
+            padding: 24px;
+            overflow: hidden;
+        }
+
+        .city-sidebar {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            backdrop-filter: var(--glass-blur);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .city-workspace {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .city-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+            background: #f4eee1; /* Default parchment background, updated by theme */
+        }
+
+        .city-canvas:active {
+            cursor: grabbing;
+        }
+
+        /* Floating Info Card */
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 280px;
+            background: rgba(30, 32, 35, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            color: #fff;
+            font-family: var(--font-body);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        .info-panel.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .info-title {
+            font-family: var(--font-heading);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+        }
+
+        .info-meta {
+            font-size: 13px;
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            row-gap: 6px;
+        }
+
+        .meta-label {
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .meta-val {
+            color: #fff;
+        }
+
+        /* Form styling */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-family: var(--font-heading);
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            font-family: var(--font-body);
+            width: 100%;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .checkbox-label input {
+            cursor: pointer;
+        }
+
+        .action-button {
+            background: var(--accent-primary);
+            color: #000;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: 12px 20px;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .action-button:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 25px var(--accent-glow-strong);
+            transform: translateY(-1px);
+        }
+
+        .seed-input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        /* Help tip floating on canvas */
+        .help-tip {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #ccc;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: var(--font-body);
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="dungeon-fullscreen-body">
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="watabou-header dungeon-header">
+            <div class="header-logo">
+                <a href="index.html" class="logo-back-link">
+                    <span class="logo-author">Aetherforge's</span>
+                    <span class="logo-title">Worldforge</span>
+                </a>
+            </div>
+            
+            <div style="flex-grow: 1; text-align: center;">
+                <h1 style="font-family: var(--font-heading); font-size: 18px; letter-spacing: 1px; color: var(--text-primary);">
+                    🏰 PROCEDURAL CITY GENERATOR
+                </h1>
+            </div>
+
+            <div class="header-nav">
+                <a href="index.html" class="nav-link">Home</a>
+            </div>
+        </header>
+
+        <!-- LAYOUT -->
+        <div class="city-layout">
+            <!-- SIDEBAR -->
+            <aside class="city-sidebar">
+                <h3 style="font-family: var(--font-heading); font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">CONFIGURATION</h3>
+
+                <!-- Seed -->
+                <div class="form-group">
+                    <label for="txtSeed">City Seed</label>
+                    <div class="seed-input-wrapper">
+                        <input type="text" id="txtSeed" class="form-control" placeholder="Random seed...">
+                        <button class="btn-icon" id="btnRandSeed" title="Random Seed">🔄</button>
+                    </div>
+                </div>
+
+                <!-- Size -->
+                <div class="form-group">
+                    <label for="selSize">Settlement Size</label>
+                    <select id="selSize" class="form-control">
+                        <option value="small">🏡 Village (Small)</option>
+                        <option value="medium" selected>🏘️ Town (Medium)</option>
+                        <option value="large">🏰 City (Large)</option>
+                        <option value="metropolis">🏛️ Metropolis (Huge)</option>
+                    </select>
+                </div>
+
+                <!-- Grid Layout -->
+                <div class="form-group">
+                    <label for="selGrid">District Layout Shape</label>
+                    <select id="selGrid" class="form-control">
+                        <option value="voronoi" selected>🌀 Organic (Voronoi)</option>
+                        <option value="hex">⬡ Planned (Hexagonal)</option>
+                        <option value="square">⬜ Grid (Square)</option>
+                        <option value="concentric">🎯 Concentric Rings</option>
+                    </select>
+                </div>
+
+                <!-- Visual Theme -->
+                <div class="form-group">
+                    <label for="selTheme">Map Theme</label>
+                    <select id="selTheme" class="form-control">
+                        <option value="parchment" selected>📜 Classic Parchment</option>
+                        <option value="blueprint">💻 Slate Blueprint</option>
+                        <option value="dark">🔮 Glowing Dark Aether</option>
+                        <option value="contrast">🕶️ High Contrast</option>
+                    </select>
+                </div>
+
+                <!-- Toggles -->
+                <div class="form-group">
+                    <label>Features & Layers</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="chkWalls" checked>
+                            <span>City Walls & Gates</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="chkCastle" checked>
+                            <span>Central Castle / Keep</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="chkRiver" checked>
+                            <span>Flowing River</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="chkCoast">
+                            <span>Coastal Shoreline</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="chkFields" checked>
+                            <span>Outskirts Crop Fields</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="chkLabels" checked>
+                            <span>District Labels</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
+                    <button class="action-button" id="btnGenerate">FORGE CITY</button>
+                    <button class="action-button" id="btnExport" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); box-shadow: none;">📸 Save Map (PNG)</button>
+                </div>
+            </aside>
+
+            <!-- WORKSPACE -->
+            <main class="city-workspace">
+                <!-- Canvas -->
+                <canvas id="cityCanvas" class="city-canvas"></canvas>
+
+                <!-- Help Tip -->
+                <div class="help-tip">Scroll to Zoom • Drag to Pan • Hover to Inspect Wards</div>
+
+                <!-- Floating Info Panel -->
+                <div class="info-panel" id="infoPanel">
+                    <div class="info-title" id="lblDistrictName">District Name</div>
+                    <div class="info-meta">
+                        <span class="meta-label">Type:</span>
+                        <span class="meta-val" id="lblDistrictType">Ward</span>
+
+                        <span class="meta-label">Population:</span>
+                        <span class="meta-val" id="lblDistrictPop">0</span>
+
+                        <span class="meta-label">Details:</span>
+                        <span class="meta-val" id="lblDistrictDesc">-</span>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/city.js"></script>
+</body>
+</html>
