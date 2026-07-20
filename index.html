@@ -3,115 +3,428 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aetherforge Worldforge | Procedural Map Generators</title>
-    <!-- Google Fonts: Merriweather (serif) and Share Tech / Share (sans-serif) -->
+    <title>Aetherforge Worldforge | Advanced TTRPG Procedural Generator Suite</title>
+    <!-- Google Fonts: Merriweather, Share Tech, Outfit, Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Share+Tech&family=Share:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Outfit:wght@400;600;700&family=Share+Tech&family=Share:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Landing Page Enhancements */
+        .portal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .portal-title-group {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .portal-logo-author {
+            font-family: 'Share', sans-serif;
+            font-size: 1.1rem;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .portal-logo-main {
+            font-family: 'Merriweather', serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--text-bright);
+            letter-spacing: -0.5px;
+        }
+
+        .portal-quick-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-surprise {
+            background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+            color: #fff;
+            font-weight: 600;
+            padding: 10px 18px;
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+            transition: all 0.25s ease;
+        }
+
+        .btn-surprise:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(168, 85, 247, 0.55);
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: var(--bg-tertiary);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: var(--radius-full);
+            font-family: 'Share', sans-serif;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: var(--accent-blue-hover);
+        }
+
+        .generator-grid-v2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .gen-card-v2 {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+
+        .gen-card-v2:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-gold);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        .card-preview-container {
+            height: 180px;
+            position: relative;
+            overflow: hidden;
+            background: #1a1c23;
+        }
+
+        .card-preview-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .gen-card-v2:hover .card-preview-container img {
+            transform: scale(1.05);
+        }
+
+        .card-badge-row {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            z-index: 2;
+        }
+
+        .card-badge {
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(6px);
+            color: #e2e8f0;
+            font-family: 'Share', sans-serif;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            text-transform: uppercase;
+        }
+
+        .card-badge.gold {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .card-body-v2 {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .card-title-v2 {
+            font-family: 'Merriweather', serif;
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+        }
+
+        .card-title-v2 a {
+            color: var(--text-bright);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .card-title-v2 a:hover {
+            color: var(--accent-gold);
+        }
+
+        .card-desc-v2 {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 16px;
+            flex: 1;
+        }
+
+        .seed-launcher-bar {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 8px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .seed-input {
+            background: transparent;
+            border: none;
+            color: var(--text-bright);
+            font-family: monospace;
+            font-size: 0.85rem;
+            width: 100%;
+            outline: none;
+            padding: 0 4px;
+        }
+
+        .btn-seed-rand {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-seed-rand:hover {
+            background: var(--accent-blue);
+            color: #fff;
+        }
+
+        .btn-launch-card {
+            background: var(--accent-blue);
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-family: 'Share', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .btn-launch-card:hover {
+            background: var(--accent-blue-hover);
+        }
+    </style>
 </head>
 <body>
     <div class="watabou-page-wrapper">
         <!-- HEADER -->
-        <header class="watabou-header">
-            <div class="header-logo">
-                <span class="logo-author">Aetherforge's</span>
-                <span class="logo-title">Worldforge</span>
+        <header class="portal-header">
+            <div class="portal-title-group">
+                <span class="portal-logo-author">Aetherforge's</span>
+                <span class="portal-logo-main">Worldforge</span>
             </div>
-            <nav class="header-nav">
-                <a href="#" class="nav-link active">Generators</a>
-                <a href="#" class="nav-link">News</a>
-                <a href="#" class="nav-link">FAQ</a>
-                <a href="https://github.com" target="_blank" class="nav-link">GitHub</a>
-            </nav>
+            <div class="portal-quick-actions">
+                <button class="btn-surprise" id="btnSurpriseMe">
+                    <span>🎲 Surprise Me!</span>
+                </button>
+            </div>
         </header>
 
         <!-- INTRO TEXT -->
         <div class="watabou-intro">
-            <p>This is a collection of free procedural map generators for tabletop role-playing games and worldbuilding.</p>
+            <p>A suite of high-performance procedural map, dungeon, city, and name generators for tabletop role-playing games and fantasy worldbuilding.</p>
         </div>
 
-        <!-- BLOCKS GRID -->
-        <div class="blocks-grid">
+        <!-- CATEGORY FILTERS -->
+        <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all">All Tools</button>
+            <button class="filter-btn" data-filter="world">World & Planetary</button>
+            <button class="filter-btn" data-filter="city">Cities & Towns</button>
+            <button class="filter-btn" data-filter="dungeon">Dungeons & Caves</button>
+            <button class="filter-btn" data-filter="tools">Lore & Naming</button>
+        </div>
+
+        <!-- GENERATOR GRID -->
+        <div class="generator-grid-v2" id="generatorGrid">
             
-            <!-- BLOCK 1: Planetary Worldforge (Active Link) -->
-            <div class="generator-card static-card">
-                <div class="card-image-wrapper">
+            <!-- CARD 1: Planetary Worldforge -->
+            <div class="gen-card-v2" data-category="world">
+                <div class="card-preview-container">
+                    <div class="card-badge-row">
+                        <span class="card-badge gold">Hydraulic Lakes</span>
+                        <span class="card-badge">Macro Leylines</span>
+                    </div>
                     <img src="https://watabou.github.io/images/ps.jpg" alt="Planetary Worldforge">
                 </div>
-                <div class="card-content">
-                    <h2 class="card-title"><a href="world.html">Planetary Worldforge</a></h2>
-                    <p class="card-desc">Interactive procedural world builder. Simulates tectonic plates, atmospheric layers, internal core details, cities, political boundaries, and dungeons.</p>
+                <div class="card-body-v2">
+                    <h2 class="card-title-v2"><a href="world.html">Planetary Worldforge</a></h2>
+                    <p class="card-desc-v2">Simulate full procedural planets with tectonic landforms, hydraulic lake basin spillovers, macro leyline rift zones, political nations, and linked dungeons.</p>
+                    <div class="seed-launcher-bar">
+                        <input type="text" class="seed-input" id="seedWorld" placeholder="Seed (optional)...">
+                        <button class="btn-seed-rand" onclick="randomizeSeedInput('seedWorld')">🎲</button>
+                        <button class="btn-launch-card" onclick="launchWithSeed('world.html', 'seedWorld')">Forge</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- BLOCK 2: Procedural City Generator (Active Link) -->
-            <div class="generator-card static-card">
-                <div class="card-image-wrapper">
+            <!-- CARD 2: Procedural City Generator -->
+            <div class="gen-card-v2" data-category="city">
+                <div class="card-preview-container">
+                    <div class="card-badge-row">
+                        <span class="card-badge gold">District Metrics</span>
+                        <span class="card-badge">Street Networks</span>
+                    </div>
                     <img src="https://watabou.github.io/images/mfcg.jpg" alt="Procedural City Generator">
                 </div>
-                <div class="card-content">
-                    <h2 class="card-title"><a href="city.html">Procedural City Generator</a></h2>
-                    <p class="card-desc">Procedural city layout builder. Generates customizable street systems (Hex, Square, Voronoi), castles, rivers, and fields.</p>
+                <div class="card-body-v2">
+                    <h2 class="card-title-v2"><a href="city.html">Procedural City Generator</a></h2>
+                    <p class="card-desc-v2">Generate medieval and fantasy city layouts with custom street systems (Hex, Square, Voronoi), castles, riverfronts, and interactive district demographics.</p>
+                    <div class="seed-launcher-bar">
+                        <input type="text" class="seed-input" id="seedCity" placeholder="Seed (optional)...">
+                        <button class="btn-seed-rand" onclick="randomizeSeedInput('seedCity')">🎲</button>
+                        <button class="btn-launch-card" onclick="launchWithSeed('city.html', 'seedCity')">Build</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- BLOCK 3: Aetherforge Dungeon Generator (Active Link) -->
-            <div class="generator-card static-card">
-                <div class="card-image-wrapper">
+            <!-- CARD 3: Aetherforge Dungeon Generator -->
+            <div class="gen-card-v2" data-category="dungeon">
+                <div class="card-preview-container">
+                    <div class="card-badge-row">
+                        <span class="card-badge gold">VTT Export</span>
+                        <span class="card-badge">Fog of War</span>
+                    </div>
                     <img src="https://watabou.github.io/images/opd.jpg" alt="Aetherforge Dungeon Generator">
                 </div>
-                <div class="card-content">
-                    <h2 class="card-title"><a href="dungeon.html">Aetherforge Dungeon</a></h2>
-                    <p class="card-desc">Interactive procedural layout builder for multi-level dungeons, cavern systems, and wilderness surface zones. Fully customizable.</p>
+                <div class="card-body-v2">
+                    <h2 class="card-title-v2"><a href="dungeon.html">Aetherforge Dungeon</a></h2>
+                    <p class="card-desc-v2">Interactive procedural multi-level dungeon builder featuring flagstone floor tiling, wall hatching, room props, flickering torch light, and room inspection.</p>
+                    <div class="seed-launcher-bar">
+                        <input type="text" class="seed-input" id="seedDungeon" placeholder="Seed (optional)...">
+                        <button class="btn-seed-rand" onclick="randomizeSeedInput('seedDungeon')">🎲</button>
+                        <button class="btn-launch-card" onclick="launchWithSeed('dungeon.html', 'seedDungeon')">Delve</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- BLOCK 3.5: Procedural Name Generator (Active Link) -->
-            <div class="generator-card static-card">
-                <div class="card-image-wrapper">
-                    <img src="images/name_preview.png" alt="Procedural Name Generator">
+            <!-- CARD 4: Name Generator -->
+            <div class="gen-card-v2" data-category="tools">
+                <div class="card-preview-container">
+                    <div class="card-badge-row">
+                        <span class="card-badge gold">Markov Engine</span>
+                        <span class="card-badge">7 Culture Presets</span>
+                    </div>
+                    <img src="images/name_preview.png" alt="Procedural Name Generator" onerror="this.src='https://watabou.github.io/images/tt.jpg'">
                 </div>
-                <div class="card-content">
-                    <h2 class="card-title"><a href="names.html">Name Generator</a></h2>
-                    <p class="card-desc">Markov chain and syllable-based procedural naming engine. Generates realistic fantasy names for cities, mountains, rivers, factions, and nations.</p>
-                </div>
-            </div>
-
-            <!-- BLOCK 4: Isometric Hamlet Builder (Showcase) -->
-            <div class="generator-card static-card">
-                <div class="card-image-wrapper">
-                    <img src="https://watabou.github.io/images/tt.jpg" alt="Isometric Hamlet Builder">
-                </div>
-                <div class="card-content">
-                    <h2 class="card-title"><a href="#" onclick="return false;">Isometric Hamlet Builder</a></h2>
-                    <p class="card-desc">Visualizes small rural settlements in clean 3D isometric block views with procedural houses, paths, and foliage.</p>
+                <div class="card-body-v2">
+                    <h2 class="card-title-v2"><a href="names.html">Fantasy Naming Engine</a></h2>
+                    <p class="card-desc-v2">Markov chain & syllable generator engine for fantasy names. Instant names for cities, mountain ranges, hero titles, factions, and nations.</p>
+                    <div class="seed-launcher-bar">
+                        <input type="text" class="seed-input" id="seedNames" placeholder="Custom prefix/seed...">
+                        <button class="btn-seed-rand" onclick="randomizeSeedInput('seedNames')">🎲</button>
+                        <button class="btn-launch-card" onclick="launchWithSeed('names.html', 'seedNames')">Generate</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- BLOCK 5: Frontier Village Generator (Showcase) -->
-            <div class="generator-card static-card">
-                <div class="card-image-wrapper">
-                    <img src="https://watabou.github.io/images/vg.jpg" alt="Frontier Village Generator">
+            <!-- CARD 5: Player Window Window Sync -->
+            <div class="gen-card-v2" data-category="dungeon">
+                <div class="card-preview-container">
+                    <div class="card-badge-row">
+                        <span class="card-badge gold">Live Sync</span>
+                        <span class="card-badge">Real-Time FOW</span>
+                    </div>
+                    <img src="https://watabou.github.io/images/cg.jpg" alt="Player Window View">
                 </div>
-                <div class="card-content">
-                    <h2 class="card-title"><a href="#" onclick="return false;">Frontier Village Generator</a></h2>
-                    <p class="card-desc">Procedural rural cluster generator. Builds layouts of small farmsteads, winding lanes, crop borders, and local biomes.</p>
-                </div>
-            </div>
-
-            <!-- BLOCK 6: Deep Cavern Network (Showcase) -->
-            <div class="generator-card static-card">
-                <div class="card-image-wrapper">
-                    <img src="https://watabou.github.io/images/cg.jpg" alt="Deep Cavern Network">
-                </div>
-                <div class="card-content">
-                    <h2 class="card-title"><a href="#" onclick="return false;">Deep Cavern Network</a></h2>
-                    <p class="card-desc">Natural subterranean caves generated using cellular automata. Perfect for underground paths, lava vents, and deep tunnels.</p>
+                <div class="card-body-v2">
+                    <h2 class="card-title-v2"><a href="player.html">Synchronized Player Window</a></h2>
+                    <p class="card-desc-v2">Synchronized player-facing view for live TTRPG session presentation. Reveals fog of war in real-time as the Game Master uncovers tiles.</p>
+                    <div class="seed-launcher-bar">
+                        <a href="player.html" class="btn-launch-card" style="width:100%; justify-content:center;">Open Player View</a>
+                    </div>
                 </div>
             </div>
 
         </div>
     </div>
+
+    <script>
+        function randomizeSeedInput(inputId) {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let seed = '';
+            for (let i = 0; i < 8; i++) seed += chars.charAt(Math.floor(Math.random() * chars.length));
+            document.getElementById(inputId).value = seed;
+        }
+
+        function launchWithSeed(url, inputId) {
+            const seedVal = document.getElementById(inputId).value.trim();
+            if (seedVal) {
+                window.location.href = `${url}?seed=${encodeURIComponent(seedVal)}`;
+            } else {
+                window.location.href = url;
+            }
+        }
+
+        // Category Filter Logic
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const filter = btn.getAttribute('data-filter');
+
+                document.querySelectorAll('.gen-card-v2').forEach(card => {
+                    const category = card.getAttribute('data-category');
+                    if (filter === 'all' || category === filter) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Surprise Me button
+        document.getElementById('btnSurpriseMe').addEventListener('click', () => {
+            const tools = ['world.html', 'city.html', 'dungeon.html', 'names.html'];
+            const chosen = tools[Math.floor(Math.random() * tools.length)];
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let seed = '';
+            for (let i = 0; i < 8; i++) seed += chars.charAt(Math.floor(Math.random() * chars.length));
+            window.location.href = `${chosen}?seed=${seed}`;
+        });
+    </script>
 </body>
 </html>

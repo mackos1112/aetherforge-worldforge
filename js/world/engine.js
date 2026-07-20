@@ -294,6 +294,29 @@ export class WorldEngine {
         const W = this.width, H = this.height;
         const noiseAnom = new GradientNoise2D(new RNG(this.seed + '_Anom'));
 
+        // Probabilistic Magic Anomaly Epicenters (~70% chance per map when allowMagic is true)
+        this.anomalyEpicenters = [];
+        const hasMagic = this.allowMagic && (this.rng.nextFloat() < 0.70);
+        if (hasMagic) {
+            const numEpicenters = this.rng.nextInt(1, 3);
+            const anomalyTypes = ['Astral Rift', 'Mana Wastes', 'Fey Wildwood', 'Obsidian Spireland', 'Crystal Fields', 'Bioluminescent Jungle'];
+            for (let e = 0; e < numEpicenters; e++) {
+                let ex = this.rng.nextInt(0, W - 1);
+                let ey = this.rng.nextInt(0, H - 1);
+                let tries = 0;
+                while (tries < 60 && this.heightMap[ey * W + ex] < 0.49) {
+                    ex = this.rng.nextInt(0, W - 1);
+                    ey = this.rng.nextInt(0, H - 1);
+                    tries++;
+                }
+                if (this.heightMap[ey * W + ex] >= 0.49) {
+                    const radius = Math.floor(Math.min(W, H) * (0.07 + this.rng.nextFloat() * 0.04));
+                    const aType = this.rng.pick(anomalyTypes);
+                    this.anomalyEpicenters.push({ x: ex, y: ey, radius, type: aType });
+                }
+            }
+        }
+
         for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
                 const idx = y * W + x;
@@ -315,15 +338,19 @@ export class WorldEngine {
                 } else {
                     // ── Land ──
                     let isAnomaly = false;
-                    if (this.allowMagic) {
-                        const magicFactor = (noiseAnom.fbm(x / W * 7, y / H * 7, 3) + 1) / 2;
-                        if (magicFactor > 0.72) {
-                            isAnomaly = true;
-                            if (temp < -8) biome = (x % 2 === 0) ? 'Skyward Pillars' : 'Crystal Fields';
-                            else if (temp > 24) biome = (x % 2 === 0) ? 'Obsidian Spireland' : 'Mana Wastes';
-                            else if (m > 65) biome = (y % 2 === 0) ? 'Fey Wildwood' : 'Bioluminescent Jungle';
-                            else if (m < 20) biome = (x % 2 === 0) ? 'Astral Rift' : 'Mana Wastes';
-                            else biome = 'Shadow Glade';
+                    if (this.anomalyEpicenters && this.anomalyEpicenters.length > 0) {
+                        for (const epicenter of this.anomalyEpicenters) {
+                            const dx = Math.abs(x - epicenter.x);
+                            const wrappedDx = Math.min(dx, W - dx);
+                            const dy = y - epicenter.y;
+                            const dist = Math.sqrt(wrappedDx * wrappedDx + dy * dy);
+
+                            const edgeNoise = noiseAnom.fbm(x / W * 10, y / H * 10, 2) * epicenter.radius * 0.4;
+                            if (dist < epicenter.radius + edgeNoise) {
+                                isAnomaly = true;
+                                biome = epicenter.type;
+                                break;
+                            }
                         }
                     }
 
@@ -377,6 +404,63 @@ export class WorldEngine {
         }
     }
 
+    _fillDepressionAndFindSpillover(startX, startY, W, H, dirs) {
+        const visitedBasin = new Set();
+        const queue = [{ x: startX, y: startY }];
+        const basin = [];
+        const rim = [];
+        
+        const startIdx = startY * W + startX;
+        visitedBasin.add(startIdx);
+        
+        const maxBasinSize = Math.min(150, Math.floor(W * 0.12));
+
+        while (queue.length > 0 && basin.length < maxBasinSize) {
+            const curr = queue.shift();
+            basin.push(curr);
+            const currIdx = curr.y * W + curr.x;
+            const currH = this.heightMap[currIdx];
+
+            for (const [dx, dy] of dirs) {
+                const nx = (curr.x + dx + W) % W;
+                const ny = Math.max(0, Math.min(H - 1, curr.y + dy));
+                const nIdx = ny * W + nx;
+
+                if (!visitedBasin.has(nIdx)) {
+                    const nH = this.heightMap[nIdx];
+                    if (nH <= currH + 0.04) {
+                        visitedBasin.add(nIdx);
+                        queue.push({ x: nx, y: ny });
+                    } else {
+                        rim.push({ x: nx, y: ny, h: nH });
+                    }
+                }
+            }
+        }
+
+        if (rim.length === 0) return null;
+
+        rim.sort((a, b) => a.h - b.h);
+        const spill = rim[0];
+        const spillH = spill.h;
+
+        const lakeBiomeName = spillH > 0.72 ? 'Alpine Lake' : (spillH > 0.60 ? 'Crater Lake' : 'Lake');
+        let lakeBiomeIdx = BIOME_KEYS.indexOf(lakeBiomeName);
+        if (lakeBiomeIdx === -1) lakeBiomeIdx = BIOME_KEYS.indexOf('Lake');
+
+        for (const bCell of basin) {
+            const bIdx = bCell.y * W + bCell.x;
+            if (this.heightMap[bIdx] <= spillH + 0.01 && this.heightMap[bIdx] >= 0.48) {
+                this.lakeMap[bIdx] = 1;
+                if (lakeBiomeIdx !== -1) {
+                    this.biomeMap[bIdx] = lakeBiomeIdx;
+                }
+            }
+        }
+
+        return spill;
+    }
+
     _runHydrology() {
         const W = this.width, H = this.height;
         const dirs = [
@@ -397,7 +481,6 @@ export class WorldEngine {
             }
         }
 
-        // Fallback if there are very few peaks
         if (sources.length < 50) {
             for (let y = 0; y < H; y++) {
                 for (let x = 0; x < W; x++) {
@@ -411,7 +494,7 @@ export class WorldEngine {
 
         if (sources.length === 0) return;
 
-        // 2. Generate rivers using downhill spillway carving
+        // 2. Generate rivers using downhill spillway carving & lake depression spillover
         const numRivers = Math.floor(W * 0.16);
         for (let i = 0; i < numRivers; i++) {
             let start = this.rng.pick(sources);
@@ -425,8 +508,6 @@ export class WorldEngine {
             let steps = 0;
             const pathPoints = [];
             const visited = new Uint8Array(W * H);
-
-            // Rivers can flow up to maxSteps to reach ocean on huge maps
             const maxSteps = Math.max(400, W);
 
             while (steps < maxSteps) {
@@ -439,30 +520,23 @@ export class WorldEngine {
 
                 const curH = this.heightMap[sIdx];
                 const curBiome = BIOME_KEYS[this.biomeMap[sIdx]];
-                // Stop when we reach sea, ocean, lake, or another river
-                if (curH < 0.49 || curBiome.includes('Ocean') || curBiome.includes('Sea') || (steps > 0 && this.riverMap[sIdx] === 1) || this.lakeMap[sIdx] === 1) {
+
+                // Stop when we reach sea, ocean, or existing river
+                if (curH < 0.49 || curBiome.includes('Ocean') || curBiome.includes('Sea') || (steps > 5 && (this.riverMap[sIdx] === 1 || this.lakeMap[sIdx] === 1))) {
                     break;
                 }
 
-                // Check neighbors
+                // Check downhill neighbors
                 let best = null, bestH = curH;
-                let lowestNeighbor = null, lowestH = Infinity;
 
                 for (const [dx, dy] of dirs) {
                     const nx = (rx + dx + W) % W;
                     const ny = Math.max(0, Math.min(H - 1, ry + dy));
                     const nIdx = ny * W + nx;
                     
-                    // Exclude visited cells to prevent back-and-forth cycles
                     if (visited[nIdx]) continue;
                     
                     const nH = this.heightMap[nIdx];
-
-                    if (nH < lowestH) {
-                        lowestH = nH;
-                        lowestNeighbor = [nx, ny];
-                    }
-
                     if (nH < curH && nH < bestH) {
                         bestH = nH;
                         best = [nx, ny];
@@ -471,15 +545,16 @@ export class WorldEngine {
 
                 if (best) {
                     [rx, ry] = best;
-                } else if (lowestNeighbor) {
-                    // Carve a spillway: lower the lowest neighbor to spill over
-                    const nIdx = lowestNeighbor[1] * W + lowestNeighbor[0];
-                    if (this.heightMap[nIdx] >= curH) {
-                        this.heightMap[nIdx] = curH - 0.001; // Force slightly lower elevation
-                    }
-                    [rx, ry] = lowestNeighbor;
                 } else {
-                    break;
+                    // Reached a depression minimum! Form a lake and spill over rim
+                    const spill = this._fillDepressionAndFindSpillover(rx, ry, W, H, dirs);
+                    if (spill && !visited[spill.y * W + spill.x]) {
+                        pathPoints.push({ x: spill.x, y: spill.y });
+                        rx = spill.x;
+                        ry = spill.y;
+                    } else {
+                        break;
+                    }
                 }
                 steps++;
             }

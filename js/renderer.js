@@ -384,7 +384,30 @@ export class MapRenderer {
     drawSquareTexture(ctx, px, py, size, tile, colors) {
         const cx = px + size/2, cy = py + size/2, R = size/2;
 
-        if (tile === TILE_TYPES.SURFACE_TREE) {
+        if (tile === TILE_TYPES.DUNGEON_ROOM || tile === TILE_TYPES.DUNGEON_CORRIDOR) {
+            // Flagstone grid inner lines & subtle mortar detail
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.22)';
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
+            if (tile === TILE_TYPES.DUNGEON_ROOM) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+                ctx.beginPath();
+                ctx.moveTo(px + size*0.5, py + 2); ctx.lineTo(px + size*0.5, py + size - 2);
+                ctx.stroke();
+            }
+        } else if (tile === TILE_TYPES.DUNGEON_WALL) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.fillRect(px, py, size, 2);
+            ctx.fillRect(px, py, 2, size);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.fillRect(px, py + size - 2, size, 2);
+            ctx.fillRect(px + size - 2, py, 2, size);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(px + 3, py + size - 3); ctx.lineTo(px + size - 3, py + 3);
+            ctx.stroke();
+        } else if (tile === TILE_TYPES.SURFACE_TREE) {
             ctx.fillStyle = 'rgba(0,0,0,0.25)';
             ctx.beginPath(); ctx.arc(cx, cy + 3, size/3, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = this.currentBiome === 'volcanic' ? '#3d2521' : '#142a11';
@@ -397,12 +420,14 @@ export class MapRenderer {
             ctx.moveTo(cx, py+4); ctx.lineTo(px+size-4, py+size-4); ctx.lineTo(px+4, py+size-4);
             ctx.closePath(); ctx.fill();
         } else if (tile === TILE_TYPES.DUNGEON_OBSTACLE) {
-            ctx.fillStyle = 'rgba(0,0,0,0.35)';
-            ctx.beginPath(); ctx.arc(cx+2, cy+2, R*0.7, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = colors[TILE_TYPES.DUNGEON_OBSTACLE];
-            ctx.beginPath(); ctx.arc(cx, cy, R*0.65, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5;
-            ctx.beginPath(); ctx.arc(cx, cy, R*0.3, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.beginPath(); ctx.arc(cx + 2, cy + 3, R * 0.75, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#475569';
+            ctx.beginPath(); ctx.arc(cx, cy, R * 0.7, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = colors[TILE_TYPES.DUNGEON_OBSTACLE] || '#94a3b8';
+            ctx.beginPath(); ctx.arc(cx, cy - 1, R * 0.55, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath(); ctx.arc(cx - R * 0.15, cy - R * 0.25, R * 0.22, 0, Math.PI * 2); ctx.fill();
         } else if (tile === TILE_TYPES.DUNGEON_STAIRS_DOWN) {
             ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(px+2, py+2, size-4, size-4);
             ctx.strokeStyle = colors[TILE_TYPES.DUNGEON_STAIRS_DOWN]; ctx.lineWidth = 2;
@@ -418,8 +443,10 @@ export class MapRenderer {
         } else if (tile === TILE_TYPES.DUNGEON_DOOR_CLOSED) {
             ctx.fillStyle = colors[TILE_TYPES.DUNGEON_DOOR_CLOSED];
             ctx.fillRect(px+5, py+5, size-10, size-10);
-            ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#2d1810'; ctx.lineWidth = 1.5;
             ctx.strokeRect(px+5, py+5, size-10, size-10);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillRect(cx - 1, cy - 2, 2, 4);
         } else if (tile === TILE_TYPES.DUNGEON_DOOR_OPEN) {
             ctx.fillStyle = colors[TILE_TYPES.DUNGEON_DOOR_CLOSED];
             ctx.fillRect(px+2, py+4, 4, size-8);
