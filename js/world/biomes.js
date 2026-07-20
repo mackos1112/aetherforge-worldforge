@@ -8,7 +8,7 @@ export const BIOME_KEYS = [
     'Swamp', 'Mangrove Swamp', 'Plateau', 'Valley', 'Canyon',
     'Mesa', 'Desert', 'Dune Sea', 'Oasis', 'Highland',
     'Ridge', 'Mountain', 'Snowcap', 'Volcano', 'Lava Field',
-    'Ash Wastes', 'Trench', 'Lake', 'Crater Lake',
+    'Ash Wastes', 'Trench', 'Lake', 'Alpine Lake', 'Crater Lake',
     // Magical Biomes
     'Crystal Fields', 'Mana Wastes', 'Skyward Pillars', 'Bioluminescent Jungle',
     'Astral Rift', 'Shadow Glade', 'Fey Wildwood', 'Obsidian Spireland'
@@ -48,6 +48,7 @@ export const BIOMES = {
     'Ash Wastes':     { col: [100, 95, 95],  soil: 'Volcanic Ash Deposits',bedrock: 'Basaltic Tuff' },
     'Trench':         { col: [6, 12, 30],    soil: 'Hadal Ooze',          bedrock: 'Peridotite' },
     'Lake':           { col: [60, 120, 170], soil: 'Lacustrine Clay',     bedrock: 'Limestone' },
+    'Alpine Lake':    { col: [75, 145, 195], soil: 'Glacial Meltwater Silt',bedrock: 'Granite' },
     'Crater Lake':    { col: [40, 100, 148], soil: 'Hydrothermal Crust',  bedrock: 'Obsidian' },
     // Magical Biomes
     'Crystal Fields': { col: [0, 245, 212],  soil: 'Pulverized Quartz Dust', bedrock: 'Resonant Crystal Shards' },

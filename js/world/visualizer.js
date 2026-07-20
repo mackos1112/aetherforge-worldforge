@@ -596,8 +596,8 @@ export class WorldVisualizer {
 
                 const biomeIdx = bMap[idx];
                 const biome = BIOME_KEYS[biomeIdx] || 'Ocean';
-                const info = BIOMES[biome] || BIOMES['Ocean'];
-                let [r, g, b] = info.col;
+                const info = BIOMES[biome] || BIOMES['Plains'] || BIOMES['Ocean'];
+                let [r, g, b] = (info && info.col) ? info.col : [60, 120, 170];
 
                 // Height-based shading (hillshade)
                 const h = hMap[idx];
