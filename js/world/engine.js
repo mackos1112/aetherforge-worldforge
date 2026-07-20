@@ -231,16 +231,26 @@ export class WorldEngine {
             }
         }
 
-        // Determine sea level threshold based on landmass topology
-        this.seaLevel = 0.54; // Default continents: ~65% ocean
-        if (this.landmassType === 'islands') this.seaLevel = 0.58; // Archipelago: ~75% ocean
-        if (this.landmassType === 'pangea')  this.seaLevel = 0.51; // Pangea: ~55% ocean
-
         // Normalize height map
         const hRange = hMax - hMin;
         for (let i = 0; i < W * H; i++) {
             this.heightMap[i] = (rawH[i] - hMin) / hRange;
         }
+
+        // Quantile-based Sea Level: guarantees around 60% water coverage on any seed
+        let targetWaterFrac = 0.60; // 60% water
+        if (this.landmassType === 'islands') targetWaterFrac = 0.68;
+        if (this.landmassType === 'pangea')  targetWaterFrac = 0.53;
+
+        // Sample quantile from sorted heightmap array
+        const sampleSize = Math.min(20000, W * H);
+        const samples = new Float32Array(sampleSize);
+        const step = Math.floor((W * H) / sampleSize);
+        for (let s = 0; s < sampleSize; s++) {
+            samples[s] = this.heightMap[s * step];
+        }
+        samples.sort();
+        this.seaLevel = samples[Math.floor(sampleSize * targetWaterFrac)];
 
         // Active Tectonics: Sharpen mountains & deepen ocean trenches
         if (this.tectonics === 'active') {
